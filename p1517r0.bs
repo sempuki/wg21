@@ -1,0 +1,42 @@
+<pre class='metadata'>
+Title: Contract Requirements for Iterative High-Assurance Systems
+Shortname: P1517
+Revision: 0
+Status: D
+Audience: EWG
+Group: WG21
+URL: http://wg21.link/pxxxxrn
+Editor: Ryan McDougall <mcdougall.ryan@gmail.com>
+Abstract: C++2x Contracts are trying to serve many masters. If we wish to include a certain class of high-assurance systems that are likely to become more comment over time, we should consider carefully their base requirements in a first release.
+Date: 2019-03-01
+</pre>
+
+# High Assurance
+
+Every software system is important. If a video game is buggy it means a loss of money or even jobs. If a banking system has errors it could mean a lot of everyone's money. If a industrial control system has errors it could mean physical harm. C++ is no stranger to these systems [1][2][3][4][5][6]
+
+If it is important that programs written in C++ be correct as possible, how can we extract assurance our programs meet specification? We puruse 3 basic tennets[7][8][9]
+
+1. Independence: failure modes are disjoint
+2. Redundancy: system failure is not single failure
+3. Testing: established confidence level
+
+# References
+
+[1]: http://www.prqa.com/military-aerospacedo-178b/ 
+
+[2]: http://www.stroustrup.com/JSF-AV-rules.pdf
+
+[3]: https://www.youtube.com/watch?v=3SdSKZFoUa8
+
+[4]: https://www.misra.org.uk/MISRACHome/tabid/128/Default.aspx 
+
+[5]: https://www.nrc.gov/reading-rm/doc-collections/nuregs/contract/cr6463/ 
+
+[6]: https://en.wikipedia.org/wiki/VxWorks#Notable_uses 
+
+[7]: https://ntrs.nasa.gov/archive/nasa/casi.ntrs.nasa.gov/20160005837.pdf
+
+[8]: http://www.ni.com/white-paper/6874/en/
+
+[9]: https://en.wikipedia.org/wiki/Reliability_engineering#Reliability_testing
