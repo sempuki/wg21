@@ -1230,7 +1230,7 @@ Possible extra rowspan handling
   <meta content="Bikeshed version 6dcb46ba8cae3704b42c05bcd8578c92d239786a" name="generator">
   <link href="http://wg21.link/p1517r0" rel="canonical">
   <link href="https://isocpp.org/favicon.ico" rel="icon">
-  <meta content="fbbf1634e459e33504f7737f5403cf5a6030bdf1" name="document-revision">
+  <meta content="a45b79e70c97e62a8eb8822757dac71ea266a9a4" name="document-revision">
 <style>/* style-md-lists */
 
 /* This is a weird hack for me not yet following the commonmark spec
@@ -1459,7 +1459,7 @@ pre .property::before, pre .property::after {
   </div>
   <div class="p-summary" data-fill-with="abstract">
    <h2 class="no-num no-toc no-ref heading settled" id="abstract"><span class="content">Abstract</span></h2>
-   <p>C++2x Contracts are trying to serve many masters. If we wish to serve the kind of high-assurance systems that are increasingly embedded in our lives, we should carefully consider the minimal requirements needed to achieve primary goals.</p>
+   <p>C++2a Contracts are trying to serve many masters. If we wish to serve the kind of high-assurance systems that are increasingly embedded in our lives, we should carefully consider the minimal requirements needed to achieve primary goals.</p>
   </div>
   <nav data-fill-with="table-of-contents" id="toc">
    <h2 class="no-num no-toc no-ref" id="contents">Table of Contents</h2>
@@ -1472,7 +1472,7 @@ pre .property::before, pre .property::after {
       <li><a href="#iterative-development"><span class="secno">1.3</span> <span class="content">Iterative Development</span></a>
      </ol>
     <li>
-     <a href="#contract-checking-statements"><span class="secno">2</span> <span class="content">Contract Checking Statements</span></a>
+     <a href="#contract-checking-statements"><span class="secno">2</span> <span class="content">Contract-Checking Statements</span></a>
      <ol class="toc">
       <li><a href="#redundant-checking"><span class="secno">2.1</span> <span class="content">Redundant Checking</span></a>
      </ol>
@@ -1481,6 +1481,7 @@ pre .property::before, pre .property::after {
      <ol class="toc">
       <li><a href="#unchecked-statements-and-undefined-behavior"><span class="secno">3.1</span> <span class="content">Unchecked Statements and Undefined Behavior</span></a>
       <li><a href="#uncheckable-statements-and-optimization"><span class="secno">3.2</span> <span class="content">Uncheckable Statements and Optimization</span></a>
+      <li><a href="#conclusion"><span class="secno">3.3</span> <span class="content">Conclusion</span></a>
      </ol>
     <li><a href="#references"><span class="secno">4</span> <span class="content">References</span></a>
    </ol>
@@ -1489,7 +1490,7 @@ pre .property::before, pre .property::after {
    <h2 class="heading settled" data-level="1" id="background"><span class="secno">1. </span><span class="content">Background</span><a class="self-link" href="#background"></a></h2>
    <h3 class="heading settled" data-level="1.1" id="high-assurance-systems"><span class="secno">1.1. </span><span class="content">High Assurance Systems</span><a class="self-link" href="#high-assurance-systems"></a></h3>
    <p>Every software system is important. If a video game is buggy it means a loss of money or jobs. If a banking system has errors it could mean a lot of money. If a industrial control system has errors it could mean physical harm. C++ is no stranger to these systems [1][2][3][4][5][6]</p>
-   <p>We define Quality[7] to be surface area where software performance meets requirements, and we define Reliability[8] to be quality over time. Requirements are always within an operational context, so the expected Operational Domain[9][10] is of integral consideration. For example the control systems that fly a military jet are not the same as those in a remote control toy.</p>
+   <p>We define Quality[7] to be surface area where software performance meets requirements, and we define Reliability[8] to be quality over time. Requirements are always within an operational context, so the expected Operational Domain[9][10] is of integral consideration -- for example the control systems that fly a military jet are not the same as those in a remote control toy.</p>
    <p>We define Availability[11] to be continued software performance as time and environment change -- often adversely, such as when given bad data, violated assumptions, or novel environment, as frequently happens in real world deployments. As such we consider Failure to be the adversary of availability. In developing high availability assurance 3 basic tenets may be pursued:</p>
    <ol>
     <li data-md>
@@ -1500,9 +1501,9 @@ pre .property::before, pre .property::after {
      <p>Measurement[14][15]: establish operating boundaries with confidence levels</p>
    </ol>
    <p>Failures are a result of Defects within the design, implementation, or assembly of the system.</p>
-   <p>High Assurance systems are written to avoid defects, detect defects, continue in presence of defects, report defects, heal defects, and minimize damage from defects; often within a statistical, process, or even regulatory framework. These abilities are usually required due to a sensitive or critical operational environment, such as with high energy machinery, or because frequencies or populations cause small probabilities become eventualities.</p>
-   <p>Therefore what is considered a High Assurance system, may be precisely defined, and is a product of set of rigid stipulations that exist to "prove" the assembled whole retains these beneficial properties[16]. A violation of some constituent property may "pass the eye test" or may not "look like a problem" locally, but in the systematic analysis may introduce a flaw in confidence or execution.</p>
-   <p>High Assurance system must have least two pillars:</p>
+   <p>High assurance systems are written to avoid defects, detect defects, continue in presence of defects, report defects, heal defects, and minimize damage from defects -- often within a statistical, process, or even regulatory framework. These abilities are usually required due to a sensitive or critical operational environment, such as with high energy machinery, or because frequencies or populations cause small probabilities become eventualities.</p>
+   <p>Therefore what is considered a high assurance system, may be precisely defined, and is a product of set of rigid stipulations that exist to "prove" the assembled whole retains these beneficial properties[16]. A violation of some constituent property may "pass-the-eye test" or may not "look like a problem" locally, but in the systematic analysis may introduce a flaw in confidence or execution.</p>
+   <p>High assurance system must have least two pillars:</p>
    <ol>
     <li data-md>
      <p>Be a product of Verifiable Process[17]</p>
@@ -1510,14 +1511,14 @@ pre .property::before, pre .property::after {
      <p>Be tested in broadly in its Operational Domain[10]</p>
    </ol>
    <h3 class="heading settled" data-level="1.2" id="systemic-failure"><span class="secno">1.2. </span><span class="content">Systemic Failure</span><a class="self-link" href="#systemic-failure"></a></h3>
-   <p>Many defects in maturing systems can be discovered in a finite number of reasonable test cases or deduction steps; we can travel across the country, around the world, or even beyond the atmosphere, with such high confidence that it seems normal or routine. Yet matured systems are not free of accident or disaster.  If the system is free of obvious defects, any further failure must result from some defect that escaped a straight-forward analysis, through some non-obvious mechanism or happenstance -- one that may have been considered far fetched at design or validation time. Engineering history is written in the ink of regrettable oversights, and the examples of loss are too common. [18][19]</p>
-   <p>Failures can occur from any combination of defects[20]; after designing and testing for individual defects, we must consider how defects may conspire systematically. Wherever we can imagine a systemic failure, that must be also be a defect. If we have already fixed the obvious ones, it must necessarily be the unobvious ones to come.</p>
+   <p>Many defects in maturing systems can be discovered in a finite number of reasonable test cases or deduction steps; we can travel across the country, around the world, or even beyond the atmosphere, with such high confidence that it seems normal or routine. Yet matured systems are not free of accident or disaster.  If the system is free of obvious defects, any further failure must result from some defect that escaped a straightforward analysis, through some non-obvious mechanism or happenstance -- one that may have been considered far fetched at design or validation time. Engineering history is written in the ink of regrettable oversights, and the examples of loss are too common. [18][19]</p>
+   <p>Failures can occur from any combination of defects[20]; after designing and testing for individual defects, we must consider how defects may conspire systematically. Wherever we can imagine a systemic failure there is a defect. If we have already fixed the obvious ones, it must necessarily be the unobvious ones to come.</p>
    <p>Assurance is a statistical construct; a confidence built from process and testing, not a guarantee. Black swans exist, and when we allow systematic failure as an unlikely possibility, we enable the risk of it becoming eventuality.</p>
    <h3 class="heading settled" data-level="1.3" id="iterative-development"><span class="secno">1.3. </span><span class="content">Iterative Development</span><a class="self-link" href="#iterative-development"></a></h3>
    <p>In the ideal, software has no defects. Yet it is clear that the systems we rely on do contain latent defects at any given moment, sometimes going undetected for years. Moreover to build assurance we must test in a representative operational domain in order to uncover and fix those defects. So we are certain one way or the other that incorrect software will be in operation in some domain at some point in time.</p>
-   <p>For products which have a definitive release cycle, we can delay release until we have sufficient confidence through staged, progressively representative test phases, and freeze development until another development cycle is necessary. For the kinds of products we are likely to see more of, such at AI and IoT devices, or even cars[21], the development cycle may be rapid enough that releases are frequent or short. We’ve gotten used to cloud software or video games that are always updating; one might imagine a hypothetical Robot Dog constantly learning and adapting to its owners, or an IoT refrigerator that learns when to buy milk.</p>
-   <h2 class="heading settled" data-level="2" id="contract-checking-statements"><span class="secno">2. </span><span class="content">Contract Checking Statements</span><a class="self-link" href="#contract-checking-statements"></a></h2>
-   <p>Contract Checking Statements are a natural fit for High Assurance systems:</p>
+   <p>For products that have a definitive release cycle, we can delay release until we have sufficient confidence through staged, progressively representative test phases, and freeze development until another development cycle is necessary. For the kinds of products we are likely to see more of, such at AI and IoT devices, or even cars[21], the development cycle may be rapid enough that releases are frequent or short. We’ve gotten used to cloud software or video games that are always updating; one might imagine a hypothetical Robot Dog constantly learning and adapting to its owners, or an IoT refrigerator that learns when to buy milk.</p>
+   <h2 class="heading settled" data-level="2" id="contract-checking-statements"><span class="secno">2. </span><span class="content">Contract-Checking Statements</span><a class="self-link" href="#contract-checking-statements"></a></h2>
+   <p>Contract-Checking Statements are a natural fit for High Assurance systems:</p>
    <ol>
     <li data-md>
      <p>avoid defects through documentation</p>
@@ -1531,7 +1532,7 @@ pre .property::before, pre .property::after {
      <p>framework for verification process</p>
    </ol>
    <h3 class="heading settled" data-level="2.1" id="redundant-checking"><span class="secno">2.1. </span><span class="content">Redundant Checking</span><a class="self-link" href="#redundant-checking"></a></h3>
-   <p>High Availability systems cannot "fail fast" once outside the test environment; they are designed to handle defect healing or minimization by reverting to some stable state from which to attempt recovery. We can imagine this working as if an exception is thrown and control reaches a catch clause that can handle it.</p>
+   <p>High availability systems cannot "fail fast" once outside the test environment; they are designed to handle defect healing or minimization by reverting to some stable state from which to attempt recovery. We can imagine this working as if an exception is thrown and control reaches a catch clause that can handle it.</p>
 <pre class="highlight"><c- b>void</c-> <c- nf>handle_drone</c-><c- p>(</c-><c- n>FlightPath</c-> <c- o>*</c-><c- n>path</c-><c- p>)</c-> <c- p>{</c->
   <c- k>if</c-> <c- p>(</c-><c- n>path</c-> <c- o>==</c-> <c- k>nullptr</c-><c- p>)</c-> <c- p>{</c->
     <c- k>throw</c-> <c- n>flight_error</c-><c- p>();</c->
@@ -1547,7 +1548,7 @@ pre .property::before, pre .property::after {
   <c- p>}</c->
 <c- p>}</c->
 </pre>
-   <p>Since Contract Checking Statements are not error handling, we have Redundancy and Independence by encoding our critical logic in both systems.</p>
+   <p>Since Contract-Checking Statements are not error handling, we have Redundancy and Independence by encoding our critical logic in both systems.</p>
 <pre class="highlight"><c- b>void</c-> <c- nf>handle_drone</c-><c- p>(</c-><c- n>FlightPath</c-> <c- o>*</c-><c- n>path</c-><c- p>)</c->
   <c- p>[[</c-><c- n>expects</c-> <c- o>&lt;</c-><c- n>level</c-><c- o>></c-> <c- o>:</c-> <c- n>path</c-> <c- o>!=</c-> <c- k>nullptr</c-><c- p>]]</c-> <c- p>{</c->
   <c- k>if</c-> <c- p>(</c-><c- n>path</c-> <c- o>==</c-> <c- k>nullptr</c-><c- p>)</c-> <c- p>{</c->
@@ -1559,9 +1560,9 @@ pre .property::before, pre .property::after {
    <p>Redundant Checking requires:</p>
    <ol>
     <li data-md>
-     <p>Contract Checking Statements are somewhat redundant with fail-over logic</p>
+     <p>Contract-checking statements are somewhat redundant with fail-over logic</p>
     <li data-md>
-     <p>Contract Checking Statements are set to a semantic where process termination does not result</p>
+     <p>Contract-checking statements are set to a semantic where process termination does not result</p>
    </ol>
    <h2 class="heading settled" data-level="3" id="concerns-with-working-draft"><span class="secno">3. </span><span class="content">Concerns with Working Draft</span><a class="self-link" href="#concerns-with-working-draft"></a></h2>
    <h3 class="heading settled" data-level="3.1" id="unchecked-statements-and-undefined-behavior"><span class="secno">3.1. </span><span class="content">Unchecked Statements and Undefined Behavior</span><a class="self-link" href="#unchecked-statements-and-undefined-behavior"></a></h3>
@@ -1577,9 +1578,9 @@ pre .property::before, pre .property::after {
 </pre>
    <p>It may be argued that a sane compiler wouldn’t elide error checking if it wasn’t "sure", or a high assurance system shouldn’t be able to trivially change its build semantic to something dangerous, by relying on "that shouldn’t happen" or "seems unlikely" for our system assurance, we currently expose directly in the text of the working draft a vulnerability that allows for systemic failure as a possibility under some defaults.</p>
    <hr>
-    High Assurance systems would require that any optimization step that might elide redundant checking be the non-default option at any build level. 
+    High assurance systems would require that any optimization step that might elide redundant checking be the non-default option at any build level. 
    <h3 class="heading settled" data-level="3.2" id="uncheckable-statements-and-optimization"><span class="secno">3.2. </span><span class="content">Uncheckable Statements and Optimization</span><a class="self-link" href="#uncheckable-statements-and-optimization"></a></h3>
-   <p>We wish to enable contract checking statements as a tool to document interfaces to either humans or static analysis tools, as a means of avoiding defects. However some predicates may not be expressible in a form that can be checked or even evaluated; for example if evaluation would change the state of the system being checked, or if the computation was practically infeasible. However if the only semantic available to express this requirement brings with it the baggage of attempted optimization (and removing our redundant checks), we lose an important tool for achieving high assurance.</p>
+   <p>We wish to enable contract checking statements as a tool to document interfaces to either humans or static analysis tools, as a means of avoiding defects. However some predicates may not be expressible in a form that can be checked or even evaluate -- e.g. if evaluation would change the state of the system being checked, or if the computation was practically infeasible. However if the only semantic available to express this requirement brings with it the baggage of attempted optimization (and removing our redundant checks), we lose an important tool for achieving high assurance.</p>
 <pre class="highlight"><c- b>void</c-> <c- nf>handle_drone</c-><c- p>(</c-><c- n>FlightPath</c-> <c- o>*</c-><c- n>path</c-><c- p>)</c->
   <c- p>[[</c-><c- n>expects</c-> <c- o>&lt;</c-><c- n>level</c-><c- o>></c-> <c- o>:</c-> <c- n>path</c-> <c- o>!=</c-> <c- k>nullptr</c-><c- p>]]</c->
   <c- p>[[</c-><c- n>expects</c-> <c- o>&lt;</c-><c- n>documentation</c-><c- o>></c-> <c- o>:</c-> <c- n>is_obstacle_free</c-><c- p>(</c-><c- n>path</c-><c- p>)</c-> <c- p>]]</c-> <c- p>{</c->
@@ -1590,7 +1591,10 @@ pre .property::before, pre .property::after {
 <c- p>}</c->
 </pre>
    <hr>
-    Whether the word "axiom" is too overloaded with meaning to meet our requirement, or a new word is needed, High Assurance systems require a way to express uncheckable statements that are not allowed to be assumed by the compiler for the purposes of optimization. 
+    Whether the word "axiom" is too overloaded with meaning to meet our requirement, or a new word is needed, high assurance systems require a way to express uncheckable statements that are not allowed to be assumed by the compiler for the purposes of optimization. 
+   <h3 class="heading settled" data-level="3.3" id="conclusion"><span class="secno">3.3. </span><span class="content">Conclusion</span><a class="self-link" href="#conclusion"></a></h3>
+   <p>High assurance systems have been written satisfactorily before C++2a contract-checking statements, and may continue to be written with the working draft version. However if C++ community wish to serve this important and growing audience, and wish the full breadth of feature be available to those most in need of them, we should strive to deliver the most sound specification possible.</p>
+   <p>If the standard itself cannot meet industry expectations, at the very least it should defer to implementation defined behavior, so users can approach their vendors with feature requests. The worst outcome would be if some or all of contract-checking statements ended up on a "banned" list.</p>
    <h2 class="heading settled" data-level="4" id="references"><span class="secno">4. </span><span class="content">References</span><a class="self-link" href="#references"></a></h2>
    <p>[1]: http://www.prqa.com/military-aerospacedo-178b/</p>
    <p>[2]: http://www.stroustrup.com/JSF-AV-rules.pdf</p>
