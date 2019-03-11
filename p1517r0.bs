@@ -114,7 +114,7 @@ void handle_drone(FlightPath *path)
 
 ```
 
-It may be argued that a sane compiler wouldn't elide error checking if it wasn't "sure", or a high assurance system shouldn't be able to trivially change its build semantic to something dangerous, by relying on "that shouldn't happen" or "seems unlikely" for our system assurance, we expose vulnerabilities that allow systemic failure as a possibility. Given the risk associated with redundant error checkig elision, this matter should not be left as Quality of Implementation concern.
+It may be argued that a sane compiler wouldn't elide error checking if it wasn't "sure", or a high assurance system shouldn't be able to trivially change its build semantic to something dangerous, by relying on "that shouldn't happen" or "seems unlikely" for our system assurance, we currently expose directly in the text of the working draft a vulnerability that allows for systemic failure as a possibility under some defaults.
 
 --- 
 High Assurance systems would require that any optimization step that might elide redundant checking be the non-default option at any build level.
