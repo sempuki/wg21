@@ -1230,7 +1230,7 @@ Possible extra rowspan handling
   <meta content="Bikeshed version 6dcb46ba8cae3704b42c05bcd8578c92d239786a" name="generator">
   <link href="http://wg21.link/p1517r0" rel="canonical">
   <link href="https://isocpp.org/favicon.ico" rel="icon">
-  <meta content="a45b79e70c97e62a8eb8822757dac71ea266a9a4" name="document-revision">
+  <meta content="3771c7746e974b5fa3374006ed7259b0f1e16891" name="document-revision">
 <style>/* style-md-lists */
 
 /* This is a weird hack for me not yet following the commonmark spec
@@ -1503,12 +1503,12 @@ pre .property::before, pre .property::after {
    <p>Failures are a result of Defects within the design, implementation, or assembly of the system.</p>
    <p>High assurance systems are written to avoid defects, detect defects, continue in presence of defects, report defects, heal defects, and minimize damage from defects -- often within a statistical, process, or even regulatory framework. These abilities are usually required due to a sensitive or critical operational environment, such as with high energy machinery, or because frequencies or populations cause small probabilities become eventualities.</p>
    <p>Therefore what is considered a high assurance system, may be precisely defined, and is a product of set of rigid stipulations that exist to "prove" the assembled whole retains these beneficial properties[16]. A violation of some constituent property may "pass-the-eye test" or may not "look like a problem" locally, but in the systematic analysis may introduce a flaw in confidence or execution.</p>
-   <p>High assurance system must have least two pillars:</p>
+   <p>High assurance system must have at least two pillars:</p>
    <ol>
     <li data-md>
-     <p>Be a product of Verifiable Process[17]</p>
+     <p>Be a product of a Verifiable Process[17]</p>
     <li data-md>
-     <p>Be tested in broadly in its Operational Domain[10]</p>
+     <p>Be tested broadly in its Operational Domain[10]</p>
    </ol>
    <h3 class="heading settled" data-level="1.2" id="systemic-failure"><span class="secno">1.2. </span><span class="content">Systemic Failure</span><a class="self-link" href="#systemic-failure"></a></h3>
    <p>Many defects in maturing systems can be discovered in a finite number of reasonable test cases or deduction steps; we can travel across the country, around the world, or even beyond the atmosphere, with such high confidence that it seems normal or routine. Yet matured systems are not free of accident or disaster.  If the system is free of obvious defects, any further failure must result from some defect that escaped a straightforward analysis, through some non-obvious mechanism or happenstance -- one that may have been considered far fetched at design or validation time. Engineering history is written in the ink of regrettable oversights, and the examples of loss are too common. [18][19]</p>
@@ -1529,7 +1529,7 @@ pre .property::before, pre .property::after {
     <li data-md>
      <p>report defects in violation handlers</p>
     <li data-md>
-     <p>framework for verification process</p>
+     <p>framework for a verification process</p>
    </ol>
    <h3 class="heading settled" data-level="2.1" id="redundant-checking"><span class="secno">2.1. </span><span class="content">Redundant Checking</span><a class="self-link" href="#redundant-checking"></a></h3>
    <p>High availability systems cannot "fail fast" once outside the test environment; they are designed to handle defect healing or minimization by reverting to some stable state from which to attempt recovery. We can imagine this working as if an exception is thrown and control reaches a catch clause that can handle it.</p>
@@ -1562,16 +1562,16 @@ pre .property::before, pre .property::after {
     <li data-md>
      <p>Contract-checking statements are somewhat redundant with fail-over logic</p>
     <li data-md>
-     <p>Contract-checking statements are set to a semantic where process termination does not result</p>
+     <p>Contract-checking statements are set to a semantic where process termination does not result outside test environment</p>
    </ol>
    <h2 class="heading settled" data-level="3" id="concerns-with-working-draft"><span class="secno">3. </span><span class="content">Concerns with Working Draft</span><a class="self-link" href="#concerns-with-working-draft"></a></h2>
    <h3 class="heading settled" data-level="3.1" id="unchecked-statements-and-undefined-behavior"><span class="secno">3.1. </span><span class="content">Unchecked Statements and Undefined Behavior</span><a class="self-link" href="#unchecked-statements-and-undefined-behavior"></a></h3>
    <p>If the semantic assigned to a contract checking statement would be undefined behavior when the predicate would evaluate to false, and the compiler is allowed to assume the program has no undefined behavior, it is possible for the compiler to assume the predicate is always true, and use that truth value to optimize the program. While nominally a benefit, if we consider that incorrect programs are commonly in operation, and the very kind of software that is most sensitive to defect will have redundant checking, a change in checking semantic may result in a catastrophic loss of redundant error handling.</p>
 <pre class="highlight"><c- b>void</c-> <c- nf>handle_drone</c-><c- p>(</c-><c- n>FlightPath</c-> <c- o>*</c-><c- n>path</c-><c- p>)</c->
-  <c- d>/*[[expects &lt;level> : path != nullptr]]*/</c-> <c- p>{</c->  <c- c1>// unchecked; assume path never null</c->
-  <c- d>/* if (path == nullptr) {                    // elided; path is never null</c->
-<c- d>    throw flight_error();</c->
-<c- d>  } */</c->
+  <c- p>[[</c-><c- n>expects</c-> <c- o>&lt;</c-><c- n>level</c-><c- o>></c-> <c- o>:</c-> <c- n>path</c-> <c- o>!=</c-> <c- k>nullptr</c-><c- p>]]</c-> <c- p>{</c->  <c- c1>// unchecked; assume path never null</c->
+   <c- k>if</c-> <c- p>(</c-><c- n>path</c-> <c- o>==</c-> <c- k>nullptr</c-><c- p>)</c-> <c- p>{</c->                  <c- c1>// elided; path is never null</c->
+    <c- k>throw</c-> <c- n>flight_error</c-><c- p>();</c->                  <c- c1>// elided; fallback is removed</c->
+  <c- p>}</c->
   
   <c- c1>// **oops** ...</c->
 <c- p>}</c->
@@ -1580,10 +1580,10 @@ pre .property::before, pre .property::after {
    <hr>
     High assurance systems would require that any optimization step that might elide redundant checking be the non-default option at any build level. 
    <h3 class="heading settled" data-level="3.2" id="uncheckable-statements-and-optimization"><span class="secno">3.2. </span><span class="content">Uncheckable Statements and Optimization</span><a class="self-link" href="#uncheckable-statements-and-optimization"></a></h3>
-   <p>We wish to enable contract checking statements as a tool to document interfaces to either humans or static analysis tools, as a means of avoiding defects. However some predicates may not be expressible in a form that can be checked or even evaluate -- e.g. if evaluation would change the state of the system being checked, or if the computation was practically infeasible. However if the only semantic available to express this requirement brings with it the baggage of attempted optimization (and removing our redundant checks), we lose an important tool for achieving high assurance.</p>
+   <p>We wish to enable contract checking statements as a tool to document interfaces to either humans or static analysis tools, as a means of avoiding defects. However some predicates may not be expressible in a form that can be checked or even evaluate -- e.g. if evaluation would change the state of the system being checked, or if the computation was practically infeasible. However if the only semantic available to express this requirement is axiom, which brings with it the baggage of attempted optimization (and removing our redundant checks), we lose an important tool for achieving high assurance as below.</p>
 <pre class="highlight"><c- b>void</c-> <c- nf>handle_drone</c-><c- p>(</c-><c- n>FlightPath</c-> <c- o>*</c-><c- n>path</c-><c- p>)</c->
   <c- p>[[</c-><c- n>expects</c-> <c- o>&lt;</c-><c- n>level</c-><c- o>></c-> <c- o>:</c-> <c- n>path</c-> <c- o>!=</c-> <c- k>nullptr</c-><c- p>]]</c->
-  <c- p>[[</c-><c- n>expects</c-> <c- o>&lt;</c-><c- n>documentation</c-><c- o>></c-> <c- o>:</c-> <c- n>is_obstacle_free</c-><c- p>(</c-><c- n>path</c-><c- p>)</c-> <c- p>]]</c-> <c- p>{</c->
+  <c- p>[[</c-><c- n>expects</c-> <c- o>&lt;</c-><c- n>documentation</c-><c- o>></c-> <c- o>:</c-> <c- n>path</c-><c- o>-></c-><c- n>is_obstacle_free</c-><c- p>()</c-> <c- p>]]</c-> <c- p>{</c->
   <c- k>if</c-> <c- p>(</c-><c- n>path</c-> <c- o>==</c-> <c- k>nullptr</c-><c- p>)</c-> <c- p>{</c->
     <c- k>throw</c-> <c- n>flight_error</c-><c- p>();</c->
   <c- p>}</c->
@@ -1594,7 +1594,7 @@ pre .property::before, pre .property::after {
     Whether the word "axiom" is too overloaded with meaning to meet our requirement, or a new word is needed, high assurance systems require a way to express uncheckable statements that are not allowed to be assumed by the compiler for the purposes of optimization. 
    <h3 class="heading settled" data-level="3.3" id="conclusion"><span class="secno">3.3. </span><span class="content">Conclusion</span><a class="self-link" href="#conclusion"></a></h3>
    <p>High assurance systems have been written satisfactorily before C++2a contract-checking statements, and may continue to be written with the working draft version. However if C++ community wish to serve this important and growing audience, and wish the full breadth of feature be available to those most in need of them, we should strive to deliver the most sound specification possible.</p>
-   <p>If the standard itself cannot meet industry expectations, at the very least it should defer to implementation defined behavior, so users can approach their vendors with feature requests. The worst outcome would be if some or all of contract-checking statements ended up on a "banned" list.</p>
+   <p>If the standard itself cannot meet industry expectations, at the very least it should defer to implementation defined behavior, so users can approach their vendors with feature requests. The worst outcome would be if some or all of contract-checking statements ended up on a "banned" list in critical systems.</p>
    <h2 class="heading settled" data-level="4" id="references"><span class="secno">4. </span><span class="content">References</span><a class="self-link" href="#references"></a></h2>
    <p>[1]: http://www.prqa.com/military-aerospacedo-178b/</p>
    <p>[2]: http://www.stroustrup.com/JSF-AV-rules.pdf</p>

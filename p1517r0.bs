@@ -30,9 +30,9 @@ High assurance systems are written to avoid defects, detect defects, continue in
 
 Therefore what is considered a high assurance system, may be precisely defined, and is a product of set of rigid stipulations that exist to "prove" the assembled whole retains these beneficial properties[16]. A violation of some constituent property may "pass-the-eye test" or may not "look like a problem" locally, but in the systematic analysis may introduce a flaw in confidence or execution.
 
-High assurance system must have least two pillars:
-1. Be a product of Verifiable Process[17]
-2. Be tested in broadly in its Operational Domain[10]
+High assurance system must have at least two pillars:
+1. Be a product of a Verifiable Process[17]
+2. Be tested broadly in its Operational Domain[10]
 
 ## Systemic Failure
 
@@ -55,7 +55,7 @@ Contract-Checking Statements are a natural fit for High Assurance systems:
 2. avoid defects through static analysis 
 3. detect defects and fail fast
 4. report defects in violation handlers
-5. framework for verification process
+5. framework for a verification process
 
 ## Redundant Checking
 
@@ -94,7 +94,7 @@ void handle_drone(FlightPath *path)
 
 Redundant Checking requires:
 1. Contract-checking statements are somewhat redundant with fail-over logic
-2. Contract-checking statements are set to a semantic where process termination does not result
+2. Contract-checking statements are set to a semantic where process termination does not result outside test environment
 
 # Concerns with Working Draft
 
@@ -104,10 +104,10 @@ If the semantic assigned to a contract checking statement would be undefined beh
 
 ```
 void handle_drone(FlightPath *path)
-  /*[[expects <level> : path != nullptr]]*/ {  // unchecked; assume path never null
-  /* if (path == nullptr) {                    // elided; path is never null
-    throw flight_error();
-  } */
+  [[expects <level> : path != nullptr]] {  // unchecked; assume path never null
+   if (path == nullptr) {                  // elided; path is never null
+    throw flight_error();                  // elided; fallback is removed
+  }
   
   // **oops** ...
 }
@@ -121,12 +121,12 @@ High assurance systems would require that any optimization step that might elide
 
 ## Uncheckable Statements and Optimization
 
-We wish to enable contract checking statements as a tool to document interfaces to either humans or static analysis tools, as a means of avoiding defects. However some predicates may not be expressible in a form that can be checked or even evaluate -- e.g. if evaluation would change the state of the system being checked, or if the computation was practically infeasible. However if the only semantic available to express this requirement brings with it the baggage of attempted optimization (and removing our redundant checks), we lose an important tool for achieving high assurance.
+We wish to enable contract checking statements as a tool to document interfaces to either humans or static analysis tools, as a means of avoiding defects. However some predicates may not be expressible in a form that can be checked or even evaluate -- e.g. if evaluation would change the state of the system being checked, or if the computation was practically infeasible. However if the only semantic available to express this requirement is axiom, which brings with it the baggage of attempted optimization (and removing our redundant checks), we lose an important tool for achieving high assurance as below.
 
 ```
 void handle_drone(FlightPath *path)
   [[expects <level> : path != nullptr]]
-  [[expects <documentation> : is_obstacle_free(path) ]] {
+  [[expects <documentation> : path->is_obstacle_free() ]] {
   if (path == nullptr) {
     throw flight_error();
   }
@@ -141,7 +141,7 @@ Whether the word "axiom" is too overloaded with meaning to meet our requirement,
 
 High assurance systems have been written satisfactorily before C++2a contract-checking statements, and may continue to be written with the working draft version. However if C++ community wish to serve this important and growing audience, and wish the full breadth of feature be available to those most in need of them, we should strive to deliver the most sound specification possible. 
 
-If the standard itself cannot meet industry expectations, at the very least it should defer to implementation defined behavior, so users can approach their vendors with feature requests. The worst outcome would be if some or all of contract-checking statements ended up on a "banned" list.
+If the standard itself cannot meet industry expectations, at the very least it should defer to implementation defined behavior, so users can approach their vendors with feature requests. The worst outcome would be if some or all of contract-checking statements ended up on a "banned" list in critical systems.
 
 # References
 
