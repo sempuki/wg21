@@ -2,7 +2,7 @@
 <html lang="en"><head>
   <meta content="text/html; charset=UTF-8" http-equiv="Content-Type">
   <meta content="width=device-width, initial-scale=1, shrink-to-fit=no" name="viewport">
-  <title>D0288R8: move_only_function</title>
+  <title>P0288R8: move_only_function</title>
 <style data-fill-with="stylesheet">/******************************************************************************
  *                   Style sheet for the W3C specifications                   *
  *
@@ -1504,12 +1504,10 @@ c-[il] { color: #000000 } /* Literal.Number.Integer.Long */
  </head><body class="h-entry toc-sidebar"><p id="toc-nav"><a id="toc-jump" href="#toc"><span aria-hidden="true">↑</span> <span>Jump to Table of Contents</span></a><a id="toc-toggle" href="#toc"><span aria-hidden="true">←</span> <span>Collapse Sidebar</span></a></p>
   <div class="head">
    <p data-fill-with="logo"></p>
-   <h1 class="p-name no-ref" id="title">D0288R8<br>move_only_function</h1>
+   <h1 class="p-name no-ref" id="title">P0288R8<br>move_only_function</h1>
    <h2 class="no-num no-toc no-ref heading settled" id="subtitle"><span class="content">Draft Proposal, <time class="dt-updated" datetime="2021-07-09">2021-07-09</time></span></h2>
    <div data-fill-with="spec-metadata">
     <dl>
-     <dt>This version:
-     </dt><dd><a class="u-url" href="https://htmlpreview.github.io/?https://github.com/mattcalabrese/proposal-unique_function/master/0288-current-draft.html">https://htmlpreview.github.io/?https://github.com/mattcalabrese/proposal-unique_function/master/0288-current-draft.html</a>
      </dd><dt>Authors:
      </dt><dd>
       </dd><dd class="editor p-author h-card vcard"><span class="p-name fn">Matt Calabrese &lt;metaprogrammingtheworld@gmail.com&gt;</span>
@@ -1668,7 +1666,7 @@ with the exceptions of the following:
             public:
               using result_type = R;
 
-              // SECTION.3, construct/move/destroy
+              // SECTION.16.3.2, construct/move/destroy
               move_only_function() noexcept;
               move_only_function(nullptr_t) noexcept;
               move_only_function(move_only_function&amp;&amp;) noexcept;
@@ -1685,12 +1683,12 @@ with the exceptions of the following:
 
               ~move_only_function();
 
-              // SECTION.4, move_only_function invocation
+              // SECTION.16.3.3, move_only_function invocation
               explicit operator bool() const noexcept;
 
               R operator()(ArgTypes...) <i>cv</i> <i>ref</i> noexcept(<i>noex</i>);
 
-              // SECTION.5, move_only_function utility
+              // SECTION.16.3.4, move_only_function utility
               void swap(move_only_function&amp;) noexcept;
 
               friend void swap(move_only_function&amp;, move_only_function&amp;) noexcept;
@@ -1715,7 +1713,7 @@ with the exceptions of the following:
         which <tt>is_nothrow_move_constructible_v&lt;T&gt;</tt> is <tt>true</tt>. -- end note ]
 
 
-        <b>SECTION.3  Constructors and destructor                              [func.wrap.mov.con]</b>
+        <b>SECTION.16.3.3  Constructors and destructor                              [func.wrap.mov.con]</b>
 
         <tt>template&lt;class VT&gt;
               static constexpr bool is-callable-from = see below; // exposition-only</tt>
@@ -1842,7 +1840,7 @@ with the exceptions of the following:
 
     28        <em>Effects:</em> Destroys the target object of <tt>*this</tt>, if any.
 
-         <b>SECTION.4  Invocation                                              [func.wrap.mov.inv]</b>
+         <b>SECTION.16.3.4  Invocation                                              [func.wrap.mov.inv]</b>
 
         <tt>explicit operator bool() const noexcept;</tt>
 
@@ -1856,7 +1854,7 @@ with the exceptions of the following:
               <tt>return INVOKE&lt;R&gt;(static_cast&lt;F <i>inv-quals</i>&gt;(f), std::forward&lt;ArgTypes&gt;(args)...);</tt>
               where <tt>f</tt> is the target object of <tt>*this</tt> and <tt>f</tt> is lvalue of type <tt>F</tt>.
 
-         <b>SECTION.5  Utility                                                 [func.wrap.mov.util]</b>
+         <b>SECTION.16.3.5  Utility                                                 [func.wrap.mov.util]</b>
 
         <tt>void swap(move_only_function&amp; other) noexcept;</tt>
 
