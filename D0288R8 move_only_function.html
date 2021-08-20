@@ -2,7 +2,7 @@
 <html lang="en"><head>
   <meta content="text/html; charset=UTF-8" http-equiv="Content-Type">
   <meta content="width=device-width, initial-scale=1, shrink-to-fit=no" name="viewport">
-  <title>P0288R8: move_only_function</title>
+  <title>D0288R9: move_only_function</title>
 <style data-fill-with="stylesheet">/******************************************************************************
  *                   Style sheet for the W3C specifications                   *
  *
@@ -1504,7 +1504,7 @@ c-[il] { color: #000000 } /* Literal.Number.Integer.Long */
  </head><body class="h-entry toc-sidebar"><p id="toc-nav"><a id="toc-jump" href="#toc"><span aria-hidden="true">↑</span> <span>Jump to Table of Contents</span></a><a id="toc-toggle" href="#toc"><span aria-hidden="true">←</span> <span>Collapse Sidebar</span></a></p>
   <div class="head">
    <p data-fill-with="logo"></p>
-   <h1 class="p-name no-ref" id="title">P0288R8<br>move_only_function</h1>
+   <h1 class="p-name no-ref" id="title">D0288R9<br>move_only_function</h1>
    <h2 class="no-num no-toc no-ref heading settled" id="subtitle"><span class="content">Draft Proposal, <time class="dt-updated" datetime="2021-07-09">2021-07-09</time></span></h2>
    <div data-fill-with="spec-metadata">
     <dl>
@@ -1622,6 +1622,13 @@ with the exceptions of the following:
    </li></ol>
    <h2 class="heading settled" data-level="3" id="Specification"><span class="secno">3. </span><span class="content">Specification</span><a class="self-link" href="#Specification"></a></h2>
    <p>The following is relative to N4820.[5]</p>
+
+   <p>Insert the following in Header <version> synopsis [version.syn], in secion 2, below <tt>#define __cpp_lib_memory_resource
+201603L</tt></p>
+   <blockquote>
+     <tt>#define __cpp_lib_move_only_function 202108L // also in &lt;functional&gt;</tt>
+   </blockquote>
+
    <p>Let SECTION is a placeholder for the root of the section numbering for [functional].</p>
    <p>Insert the following section in <b>Header &lt;functional&gt; synopsis</b> [functional.syn], at the end of <tt><i>SECTION.16, polymorphic function wrappers</i></tt></p>
    <blockquote>
@@ -1639,7 +1646,7 @@ with the exceptions of the following:
 <pre>
         <b>SECTION.16.3 move_only_function                                 [func.wrap.mov]</b>
 
-     1  The this header provides partial specializations of <tt>move_only_function</tt> for
+     1  The header provides partial specializations of <tt>move_only_function</tt> for
         each combination of the possible replacements of the placeholders <tt><i>cv</i></tt>, <tt><i>ref</i></tt>, and
         <tt><i>noex</i></tt> where:
 
@@ -1745,100 +1752,100 @@ with the exceptions of the following:
 
  (5.2)            — <tt>remove_cvref_t&lt;F&gt;</tt> is not a specialization of <tt>in_place_type_t</tt>, and
 
- (5.3)            — <tt>is_constructible_v&lt;VT, F&gt;</tt> is <tt>true</tt>, and
+ (5.3)            — <tt>is-callable-from&lt;VT&gt;</tt> is <tt>true</tt>.
 
- (5.4)            — <tt>is-callable-from&lt;VT&gt;</tt> is <tt>true</tt>.
+     6        <em>Mandates:</em> <tt>is_constructible_v&lt;VT, F&gt;</tt> is <tt>true</tt>
 
-     6        <em>Preconditions:</em> <tt>VT</tt> meets the <i>Cpp17Destructible</i> requirements, and if
+     7        <em>Preconditions:</em> <tt>VT</tt> meets the <i>Cpp17Destructible</i> requirements, and if
               <tt>is_move_constructible_v&lt;VT&gt;</tt> is <tt>true</tt>, <tt>VT</tt> meets the <i>Cpp17MoveConstructible</i>
               requirements.
 
-     7        <em>Postconditions:</em> <tt>*this</tt> has a target object unless any of the following hold:
+     8        <em>Postconditions:</em> <tt>*this</tt> has a target object unless any of the following hold:
 
- (7.1)            — <tt>f</tt> is a null function pointer value, or
+ (8.1)            — <tt>f</tt> is a null function pointer value, or
 
- (7.2)            — <tt>f</tt> is a null member pointer value, or
+ (8.2)            — <tt>f</tt> is a null member pointer value, or
 
- (7.3)            — <tt>remove_cvref_t&lt;F&gt;</tt> is a specialization of the <tt>move_only_function</tt> class template,
+ (8.3)            — <tt>remove_cvref_t&lt;F&gt;</tt> is a specialization of the <tt>move_only_function</tt> class template,
                      and <tt>f</tt> has no target object.
 
-     8        Otherwise, <tt>*this</tt> targets an object of type <tt>VT</tt>
+     9        Otherwise, <tt>*this</tt> targets an object of type <tt>VT</tt>
               direct-non-list-initialized with <tt>std::forward&lt;F&gt;(f)</tt>.
 
-     9        <em>Throws:</em> Any exception thrown by the initialization of the target object.
+     10       <em>Throws:</em> Any exception thrown by the initialization of the target object.
               May throw <tt>bad_alloc</tt> unless <tt>VT</tt> is a function pointer or a specialization of
               <tt>reference_wrapper</tt>.
 
         <tt>template&lt;class T, class... Args&gt;
             explicit move_only_function(in_place_type_t&lt;T&gt;, Args&amp;&amp;... args);</tt>
 
-    10        Let <tt>VT</tt> be <tt>decay_t&lt;T&gt;</tt>.
+    11        Let <tt>VT</tt> be <tt>decay_t&lt;T&gt;</tt>.
 
-    11        <em>Constraints:</em>
+    12        <em>Constraints:</em>
 
-(11.1)            — <tt>is_constructible_v&lt;VT, Args...&gt;</tt> is <tt>true</tt>, and
+(12.1)            — <tt>is_constructible_v&lt;VT, Args...&gt;</tt> is <tt>true</tt>, and
 
-(11.2)            — <tt>is-callable-from&lt;VT&gt;</tt> is <tt>true</tt>.
+(12.2)            — <tt>is-callable-from&lt;VT&gt;</tt> is <tt>true</tt>.
 
-    12        <em>Mandates:</em> <tt>VT</tt> is the same type as <tt>T</tt>.
+    13        <em>Mandates:</em> <tt>VT</tt> is the same type as <tt>T</tt>.
 
-    13        <em>Preconditions:</em> <tt>VT</tt> meets the <i>Cpp17Destructible</i> requirements, and if
+    14        <em>Preconditions:</em> <tt>VT</tt> meets the <i>Cpp17Destructible</i> requirements, and if
               <tt>is_move_constructible_v&lt;VT&gt;</tt> is <tt>true</tt>, <tt>VT</tt> meets the <i>Cpp17MoveConstructible</i>
               requirements.
 
-    14        <em>Postconditions:</em> <tt>*this</tt> targets an object of type <tt>VT</tt>
+    15        <em>Postconditions:</em> <tt>*this</tt> targets an object of type <tt>VT</tt>
               direct-non-list-initialized with <tt>std::forward&lt;Args&gt;(args)...</tt>.
 
-    15        <em>Throws:</em> Any exception thrown by the initialization of the target object.
+    16        <em>Throws:</em> Any exception thrown by the initialization of the target object.
               May throw <tt>bad_alloc</tt> unless <tt>VT</tt> is a function pointer or a specialization of
               <tt>reference_wrapper</tt>.
 
         <tt>template&lt;class T, class U, class... Args&gt;
             explicit move_only_function(in_place_type_t&lt;T&gt;, initializer_list&lt;U&gt; ilist, Args&amp;&amp;... args);</tt>
 
-    16        Let <tt>VT</tt> be <tt>decay_t&lt;T&gt;</tt>.
+    17        Let <tt>VT</tt> be <tt>decay_t&lt;T&gt;</tt>.
 
-    17        <em>Constraints:</em>
+    18        <em>Constraints:</em>
 
-(17.1)            — <tt>is_constructible_v&lt;VT, initializer_list&lt;U&gt;&amp;, ArgTypes...&gt;</tt> is <tt>true</tt>, and
+(18.1)            — <tt>is_constructible_v&lt;VT, initializer_list&lt;U&gt;&amp;, ArgTypes...&gt;</tt> is <tt>true</tt>, and
 
-(17.2)            — <tt>is-callable-from&lt;VT&gt;</tt> is <tt>true</tt>.
+(18.2)            — <tt>is-callable-from&lt;VT&gt;</tt> is <tt>true</tt>.
 
-    18        <em>Mandates:</em> <tt>VT</tt> is the same type as <tt>T</tt>.
+    19        <em>Mandates:</em> <tt>VT</tt> is the same type as <tt>T</tt>.
 
-    19        <em>Preconditions:</em> <tt>VT</tt> meets the <i>Cpp17Destructible</i> requirements, and if
+    20        <em>Preconditions:</em> <tt>VT</tt> meets the <i>Cpp17Destructible</i> requirements, and if
               <tt>is_move_constructible_v&lt;VT&gt;</tt> is <tt>true</tt>, <tt>VT</tt> meets the <i>Cpp17MoveConstructible</i>
               requirements.
 
-    20        <em>Postconditions:</em> <tt>*this</tt> targets an object of type <tt>VT</tt>
+    21        <em>Postconditions:</em> <tt>*this</tt> targets an object of type <tt>VT</tt>
               direct-non-list-initialized with <tt>ilist, std::forward&lt;ArgTypes&gt;(args)...</tt>.
 
-    21        <em>Throws:</em> Any exception thrown by the initialization of the target object.
+    22        <em>Throws:</em> Any exception thrown by the initialization of the target object.
               May throw <tt>bad_alloc</tt> unless <tt>VT</tt> is a function pointer or a specialization of
               <tt>reference_wrapper</tt>.
 
         <tt>move_only_function&amp; operator=(move_only_function&amp;&amp; f);</tt>
 
-    22        <em>Effects:</em> Equivalent to: <tt>move_only_function(std::move(f)).swap(*this);</tt>
+    23        <em>Effects:</em> Equivalent to: <tt>move_only_function(std::move(f)).swap(*this);</tt>
 
-    23        <em>Returns:</em> <tt>*this</tt>.
+    24        <em>Returns:</em> <tt>*this</tt>.
 
         <tt>move_only_function&amp; operator=(nullptr_t) noexcept;</tt>
 
-    24        <em>Effects:</em> Destroys the target object of <tt>*this</tt>, if any.
+    25        <em>Effects:</em> Destroys the target object of <tt>*this</tt>, if any.
 
-    25        <em>Returns:</em> <tt>*this</tt>.
+    26        <em>Returns:</em> <tt>*this</tt>.
 
         <tt>template&lt;class F&gt; move_only_function&amp; operator=(F&amp;&amp; f);</tt>
 
-    26        <em>Effects:</em> Equivalent to: <tt>move_only_function(std::forward&lt;F&gt;(f)).swap(*this);</tt>
+    27        <em>Effects:</em> Equivalent to: <tt>move_only_function(std::forward&lt;F&gt;(f)).swap(*this);</tt>
 
-    27        <em>Returns:</em> <tt>*this</tt>.
+    28        <em>Returns:</em> <tt>*this</tt>.
 
 
         <tt>~move_only_function()</tt>;
 
-    28        <em>Effects:</em> Destroys the target object of <tt>*this</tt>, if any.
+    29        <em>Effects:</em> Destroys the target object of <tt>*this</tt>, if any.
 
          <b>SECTION.16.3.4  Invocation                                              [func.wrap.mov.inv]</b>
 
