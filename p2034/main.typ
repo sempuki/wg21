@@ -84,7 +84,7 @@
 )
 
 #set document(
-  title: "Partially Mutable Lambda Captures",
+  title: "Const/Mutable Extended Lambda Captures",
   author: ("Ryan McDougall", "Lakshay Garg"),
   keywords: ("C++29", "lambda", "capture", "mutable", "const"),
 )
@@ -119,7 +119,7 @@
 
 = Revision History
 
-== Changes from R6: #link("https://wiki.isocpp.org/2026-03_Croydon:EvolutionWorkingGroup:P2034R6")[EWG Discussion]
+== Changes from P2034R6: #link("https://wiki.isocpp.org/2026-03_Croydon:EvolutionWorkingGroup:P2034R6")[EWG Discussion]
 
 - Restructured the motivation into an initial const-correctness case and a subsequent symmetry-and-simplicity case.
 - Added the "Lambdas Are Syntactic Sugar for Function Objects" argument, with standard, compiler, reflection, and
@@ -131,7 +131,7 @@
 - Added "Consequences of a `const` Member" and "Teaching `const` Capture".
 - TODO: complete the proposed wording for the capture-defaults and reference cases.
 
-== Changes from R5: #link("https://wiki.isocpp.org/2025-11_Kona:EWGP2034Notes")[EWG Discussion]
+== Changes from P2034R5: #link("https://wiki.isocpp.org/2025-11_Kona:EWGP2034Notes")[EWG Discussion]
 
 - Incorporate extensions into the main proposal.
 - Add discussion of capture defaults to the proposal.
@@ -142,21 +142,21 @@
   - const-ref capture-default
   - const specifier
 
-== Changes from R4: #link("https://wiki.isocpp.org/2025-06_Sofia:NotesEWGP2034")[EWG Discussion]
+== Changes from P2034R4: #link("https://wiki.isocpp.org/2025-06_Sofia:NotesEWGP2034")[EWG Discussion]
 
 - Implementation experience.
 
-== Changes from R3: #link("https://wiki.isocpp.org/2024-03_Tokyo:NotesEWGIP2034R2")[EWG-I Discussion]
+== Changes from P2034R3: #link("https://wiki.isocpp.org/2024-03_Tokyo:NotesEWGIP2034R2")[EWG-I Discussion]
 
 - Meta-motivation: safety and security -- const should be easier to get right and harder to get wrong.
 - Cleaned up some examples.
 
-== Changes from R2
+== Changes from P2034R2
 
 - Update author email addresses.
 - Rename `any_invocable` to `move_only_function`.
 
-== Changes from R1
+== Changes from P2034R1
 
 - Add discussion of const captures on move construction and assignment.
 - Add vocabulary type `as_mutable`.
