@@ -1,0 +1,513 @@
+<pre class='metadata'>
+Title: any_invocable
+Shortname: D0288
+Revision: 6
+Status: D
+Audience: LWG
+Group: WG21
+URL: https://htmlpreview.github.io/?https://github.com/mattcalabrese/proposal-unique_function/master/0288-current-draft.html
+Editor: Matt Calabrese <metaprogrammingtheworld@gmail.com>
+        Ryan McDougall <mcdougall.ryan@gmail.com>
+Abstract: This paper proposes a conservative, move-only equivalent of <tt>std::function</tt>.
+Date: 2021-07-09
+</pre>
+
+Brief History {#History}
+========================
+
+This paper started as a proposal by David Krauss, N4543[1], from 2015 and there has
+been an open issue in the LEWG bugzilla requesting such a facility since 2014[2].
+
+Since then, the paper has gone through 4 revisions and has been considered in
+small groups in LEWG multiple times. Gradual feedback has led to the conservative
+proposal seen here. The most-recent draft prior to this was a late-paper written
+and presented by Ryan McDougall in LEWGI in San Diego[3]. It included multiple
+references to implementations of move-only functions and made a strong case for
+the importance of a move-only form of <tt>std::function</tt>.
+
+Feebdack given was encouragement for targetting C++20.
+
+An updated version of that paper was presented on Saturday at the end of the
+San Diego meeting. Poll results from that presentation are presented after the
+overview in this document.
+
+The revision was presented in Kona, receiving additional polls and feedback, and
+was to be forwarded to LWG pending updates reflecting additional poll results. Those
+changes have been applied to the wording in this paper. Polls from the LEWG Kona
+review are also provided in this document.
+
+Overview {#Overview}
+====================
+
+This conservative <tt>any_invocable</tt> is intended to be the same as <tt>std::function</tt>,
+with the exceptions of the following:
+
+1. It is move-only.
+2. It does not have the const-correctness bug of <tt>std::function</tt> detailed in n4348.[4]
+3. It provides support for cv/ref/noexcept qualified function types.
+4. It does not have the <tt>target_type</tt> and <tt>target</tt> accessors (direction requested by users and implementors).
+4. Invocation has strong preconditions.
+
+Specification {#Specification}
+==============================
+
+The following is relative to N4820.[5]
+
+Add <tt>&lt;any_invocable&gt;</tt> to [tab:headers.cpp] — C++ library headers
+
+Add the following entry to [version.syn#2]:
+<tt>#define __cpp_lib_any_invocable   xxxxxxL // also in &lt;any_invocable&gt;</tt>
+
+Make it so that <tt>&lt;functional&gt;</tt> is guaranteed to include <tt>&lt;any_invocable&gt;</tt> by adding the following at the start of the synopsis of [functional.syn]:
+
+<blockquote>
+<pre nohighlight>
+        <b>20.14.1  Header &lt;functional&gt; synopsis                         [functional.syn]</b>
+
+         <ins>#include &lt;any_invocable&gt; // see [inv.syn]
+</ins>
+          namespace std {
+</pre>
+</blockquote>
+
+Insert the following section at the end of <b>Function Objects</b> [function.objects], where SECTION is a placeholder for the root of the section numbering:
+
+<blockquote>
+<pre nohighlight>
+        <b>SECTION Storage for any callable                                         [inv]</b>
+
+     1  This subclause describes components that C++ programs may use to perform
+        operations on callable objects of a given signature type.
+
+
+        <b>SECTION.1 Header &lt;any_invocable&gt; synopsis                            [inv.syn]</b>
+
+     1  The header <tt>&lt;any_invocable&gt;</tt> provides partial specializations of <tt>any_invocable</tt> for
+        each combination of the possible replacements of the placeholders <tt><i>cv</i></tt>, <tt><i>ref</i></tt>, and
+        <tt><i>noex</i></tt> where:
+
+ (1.1)   — <tt><i>cv</i></tt> is either <tt>const</tt> or empty.
+
+ (1.2)   — <tt><i>ref</i></tt> is either <tt>&amp;</tt>, <tt>&amp;&amp;</tt>, or empty.
+
+ (1.3)   — <tt><i>noex</i></tt> is either <tt>true</tt> or <tt>false</tt>.
+
+     2  For each of the possible combinations of the placeholders mentioned above,
+        there is a placeholder <tt><i>inv-quals</i></tt> defined as follows:
+
+ (2.1)   — If <tt><i>ref</i></tt> is empty, let <tt><i>inv-quals</i></tt> be <tt><i>cv</i>&amp;</tt>
+
+ (2.2)   — Otherwise, let <tt><i>inv-quals</i></tt> be <tt><i>cv ref</i></tt>.
+
+<tt>          namespace std {
+            template&lt;class... S&gt; class any_invocable; // not defined
+
+            template&lt;class R, class... ArgTypes&gt;
+              class any_invocable&lt;R(ArgTypes...) <i>cv</i> <i>ref</i> noexcept(<i>noex</i>)&gt;;
+          }</tt>
+
+
+        <b>SECTION.2 Class template any_invocable                              [inv.class]</b>
+
+<tt>          namespace std {
+            template&lt;class... S&gt; class any_invocable; // not defined
+
+            template&lt;class R, class... ArgTypes&gt;
+            class any_invocable&lt;R(ArgTypes...) <i>cv</i> <i>ref</i> noexcept(<i>noex</i>)&gt; {
+            public:
+              using result_type = R;
+
+              // SECTION.3, construct/move/destroy
+              any_invocable() noexcept;
+              any_invocable(nullptr_t) noexcept;
+              any_invocable(any_invocable&amp;&amp;) noexcept;
+              template&lt;class F&gt; any_invocable(F&amp;&amp;);
+
+              template&lt;class T, class... Args&gt;
+                explicit any_invocable(in_place_type_t&lt;T&gt;, Args&amp;&amp;...);
+              template&lt;class T, class U, class... Args&gt;
+                explicit any_invocable(in_place_type_t&lt;T&gt;, initializer_list&lt;U&gt;, Args&amp;&amp;...);
+    
+              any_invocable&amp; operator=(any_invocable&amp;&amp;);
+              any_invocable&amp; operator=(nullptr_t) noexcept;
+              template&lt;class F&gt; any_invocable&amp; operator=(F&amp;&amp;);
+
+              ~any_invocable();
+
+              // SECTION.4, any_invocable invocation
+              explicit operator bool() const noexcept;
+
+              R operator()(ArgTypes...) <i>cv</i> <i>ref</i> noexcept(<i>noex</i>);
+
+              // SECTION.5, any_invocable utility
+              void swap(any_invocable&amp;) noexcept;
+
+              friend void swap(any_invocable&amp;, any_invocable&amp;) noexcept;
+
+              friend bool operator==(const any_invocable&, nullptr_t) noexcept;
+
+            private:
+              template&lt;class VT&gt;
+                static constexpr bool is-callable-from = see below; // exposition-only
+            };
+          }</tt>
+
+     1  The <tt>any_invocable</tt> class template provides polymorphic wrappers that generalize
+        the notion of a callable object [func.def]. These wrappers can store, move, and
+        call arbitrary callable objects, given a call signature, allowing functions to
+        be first-class objects.
+
+     2  Implementations are encouraged to avoid the use of dynamically allocated memory
+        for a small contained value.
+
+        [ Note: Such small-object optimization can only be applied to types <tt>T</tt> for
+        which <tt>is_nothrow_move_constructible_v&lt;T&gt;</tt> is <tt>true</tt>. -- end note ]
+
+
+        <b>SECTION.3  Constructors and destructor                              [inv.con]</b>
+
+        <tt>template&lt;class VT&gt;
+              static constexpr bool is-callable-from = see below; // exposition-only</tt>
+
+     1  If <tt><i>noex</i></tt> is true, <tt>is-callable-from&lt;VT&gt;</tt> is equal to
+          <tt>is_nothrow_invocable_r_v&lt;R, VT <i>cv ref</i>, ArgTypes...&gt; &amp;&amp;
+             is_nothrow_invocable_r_v&lt;R, VT <i>inv-quals</i>, ArgTypes...&gt;</tt>.
+        Otherwise, <tt>is-callable-from&lt;VT&gt;</tt> is equal to
+          <tt>is_invocable_r_v&lt;R, VT <i>cv ref</i>, ArgTypes...&gt; &amp;&amp;
+             is_invocable_r_v&lt;R, VT <i>inv-quals</i>, ArgsTypes...&gt;</tt>.
+
+        <tt>any_invocable() noexcept;</tt>
+        <tt>any_invocable(nullptr_t) noexcept;</tt>
+
+     2        <em>Postconditions:</em> <tt>*this</tt> has no target object.
+ 
+        <tt>any_invocable(any_invocable&amp;&amp; f) noexcept;</tt>
+ 
+     3        <em>Postconditions:</em> The target object of <tt>*this</tt> is equivalent to the target
+              object <tt>f</tt> had before construction, if any, and <tt>f</tt> is in a valid state with
+              an unspecified value.
+
+        <tt>template&lt;class F&gt; any_invocable(F&amp;&amp; f);</tt>
+
+     4        Let <tt>VT</tt> be <tt>decay_t&lt;F&gt;</tt>.
+
+     5        <em>Constraints:</em>
+
+ (5.1)            — <tt>remove_cvref_t&lt;F&gt;</tt> is not the same type as <tt>any_invocable</tt>, and
+
+ (5.2)            — <tt>remove_cvref_t&lt;F&gt;</tt> is not a specialization of <tt>in_place_type_t</tt>, and
+
+ (5.3)            — <tt>is_constructible_v&lt;VT, F&gt;</tt> is <tt>true</tt>, and
+
+ (5.4)            — <tt>is-callable-from&lt;VT&gt;</tt> is <tt>true</tt>.
+
+     6        <em>Preconditions:</em> <tt>VT</tt> meets the <i>Cpp17Destructible</i> requirements, and if
+              <tt>is_move_constructible_v&lt;VT&gt;</tt> is <tt>true</tt>, <tt>VT</tt> meets the <i>Cpp17MoveConstructible</i>
+              requirements.
+
+     7        <em>Postconditions:</em> <tt>*this</tt> does not have a target object if any of the following
+              hold:
+
+ (7.1)            — <tt>f</tt> is a null function pointer value, or
+
+ (7.2)            — <tt>f</tt> is a null member pointer value, or
+
+ (7.3)            — <tt>remove_cvref_t&lt;F&gt;</tt> is a specialization of the <tt>any_invocable</tt> class template,
+                     and <tt>f</tt> has no target object.
+
+     8        Otherwise, <tt>*this</tt> targets an object of type <tt>VT</tt>
+              direct-non-list-initialized with <tt>std::forward&lt;F&gt;(f)</tt>.
+
+     9        <em>Throws:</em> Any exception thrown by the initialization of the target object.
+              May throw <tt>bad_alloc</tt> unless <tt>VT</tt> is a function pointer or a specialization of
+              <tt>reference_wrapper</tt>.
+
+        <tt>template&lt;class T, class... Args&gt;
+            explicit any_invocable(in_place_type_t&lt;T&gt;, Args&amp;&amp;... args);</tt>
+
+    10        Let <tt>VT</tt> be <tt>decay_t&lt;T&gt;</tt>.
+
+    11        <em>Constraints:</em>
+
+(11.1)            — <tt>is_constructible_v&lt;VT, Args...&gt;</tt> is <tt>true</tt>, and
+
+(11.2)            — <tt>is-callable-from&lt;VT&gt;</tt> is <tt>true</tt>.
+
+    12        <em>Mandates:</em> <tt>VT</tt> is the same type as <tt>T</tt>.
+
+    13        <em>Preconditions:</em> <tt>VT</tt> meets the <i>Cpp17Destructible</i> requirements, and if
+              <tt>is_move_constructible_v&lt;VT&gt;</tt> is <tt>true</tt>, <tt>VT</tt> meets the <i>Cpp17MoveConstructible</i>
+              requirements.
+
+    14        <em>Postconditions:</em> <tt>*this</tt> targets an object of type <tt>VT</tt>
+              direct-non-list-initialized with <tt>std::forward&lt;Args&gt;(args)...</tt>.
+
+    15        <em>Throws:</em> Any exception thrown by the initialization of the target object.
+              May throw <tt>bad_alloc</tt> unless <tt>VT</tt> is a function pointer or a specialization of
+              <tt>reference_wrapper</tt>.
+
+        <tt>template&lt;class T, class U, class... Args&gt;
+            explicit any_invocable(in_place_type_t&lt;T&gt;, initializer_list&lt;U&gt; ilist, Args&amp;&amp;... args);</tt>
+
+    16        Let <tt>VT</tt> be <tt>decay_t&lt;T&gt;</tt>.
+
+    17        <em>Constraints:</em>
+
+(17.1)            — <tt>is_constructible_v&lt;VT, initializer_list&lt;U&gt;&amp;, Args...&gt;</tt> is <tt>true</tt>, and
+
+(17.2)            — <tt>is-callable-from&lt;VT&gt;</tt> is <tt>true</tt>.
+
+    18        <em>Mandates:</em> <tt>VT</tt> is the same type as <tt>T</tt>.
+
+    19        <em>Preconditions:</em> <tt>VT</tt> meets the <i>Cpp17Destructible</i> requirements, and if
+              <tt>is_move_constructible_v&lt;VT&gt;</tt> is <tt>true</tt>, <tt>VT</tt> meets the <i>Cpp17MoveConstructible</i>
+              requirements.
+
+    20        <em>Postconditions:</em> <tt>*this</tt> targets an object of type <tt>VT</tt>
+              direct-non-list-initialized with <tt>ilist, std::forward&lt;Args&gt;(args)...</tt>.
+
+    21        <em>Throws:</em> Any exception thrown by the initialization of the target object.
+              May throw <tt>bad_alloc</tt> unless <tt>VT</tt> is a function pointer or a specialization of
+              <tt>reference_wrapper</tt>.
+
+        <tt>any_invocable&amp; operator=(any_invocable&amp;&amp; f);</tt>
+
+    22        <em>Effects:</em> Equivalent to: <tt>any_invocable(std::move(f)).swap(*this);</tt>
+
+    23        <em>Returns:</em> <tt>*this</tt>.
+
+        <tt>any_invocable&amp; operator=(nullptr_t) noexcept;</tt>
+
+    24        <em>Effects:</em> Destroys the target object of <tt>*this</tt>, if any.
+
+    25        <em>Postconditions:</em> <tt>*this</tt> has no target object.
+
+    26        <em>Returns:</em> <tt>*this</tt>.
+
+        <tt>template&lt;class F&gt; any_invocable&amp; operator=(F&amp;&amp; f);</tt>
+
+    26        <em>Effects:</em> Equivalent to: <tt>any_invocable(std::forward&lt;F&gt;(f)).swap(*this);</tt>
+
+    27        <em>Returns:</em> <tt>*this</tt>.
+
+
+        <tt>~any_invocable()</tt>;
+
+    28        <em>Effects:</em> Destroys the target object of <tt>*this</tt>, if any.
+
+         <b>SECTION.4  Invocation                                              [inv.inv]</b>
+
+        <tt>explicit operator bool() const noexcept;</tt>
+
+     1        <em>Returns:</em> <tt>true</tt> if <tt>*this</tt> has a target object, otherwise <tt>false</tt>.
+
+        <tt>R operator()(ArgTypes... args) <i>cv</i> <i>ref</i> noexcept(<i>noex</i>);</tt>
+
+     2        <em>Preconditions:</em> <tt>*this</tt> has a target object.
+
+     3        <em>Effects:</em> Equivalent to:
+              <tt>return INVOKE&lt;R&gt;(static_cast&lt;F &amp;&gt;(f), std::forward&lt;ArgTypes&gt;(args)...);</tt>
+              where <tt>f</tt> is the target object of <tt>*this</tt> and <tt>f</tt> is lvalue of type <tt>F</tt>.
+
+         <b>SECTION.5  Utility                                                 [inv.util]</b>
+
+        <tt>void swap(any_invocable&amp; other) noexcept;</tt>
+
+     1        <em>Effects:</em> Exchanges the values of <tt>*this</tt> and <tt>other</tt>.
+
+        <tt>friend void swap(any_invocable&amp; f1, any_invocable&amp; f2) noexcept;</tt>
+
+     2        <em>Effects</em>: Equivalent to: <tt>f1.swap(f2)</tt>.
+
+        <tt>friend bool operator==(const any_invocable&amp; f, nullptr_t) noexcept;</tt>
+
+     3        <em>Returns:</em> <tt>true</tt> if <tt>f</tt> has no target object, otherwise false.
+
+</pre>
+</blockquote>
+
+Polls from LEWG San Diego Review (2018) {#SD2018}
+=================================================
+
+## Support func(), func() const, func() &&
+
+<pre>
+SF F N A SA
+6  6 2 1 0
+</pre>
+
+## Support func() && only
+
+<pre>
+SF F N A SA
+2  2 7 1 1
+</pre>
+
+## Remove target/target_type
+
+<pre>
+SF F N A SA
+12 5 0 0 0
+</pre>
+
+## Require more stuff (noexcept, const&&, ...)
+
+<pre>
+SF F N A SA
+0  1 8 6 0
+</pre>
+
+Note that the final poll (require more stuff) was not due to members being
+against the design, but because we could easily add those facilities in a later
+standard without any breakage.
+
+## Name Options
+
+There was one final poll, which brought us to the name <tt>any_invocable</tt>.
+
+<pre>
+3  unique_function
+3  move_function
+2  move_only_function
+7  movable_function
+8  mfunction
+10 any_invocable
+8  mofun
+8  mofunc
+0  callback
+4  mvfunction
+2  func
+0  callable
+2  any_function
+</pre>
+
+Polls from LEWG Kona Review (2019) {#K2019}
+=================================================
+
+## We want to spend time on this now in order to include it in C++20 
+
+<pre>
+SF F N A SA
+8  8 2 0 0
+</pre>
+
+## Add support for func() const& and func()&
+
+<pre>
+SF F N A SA
+0  8 7 0 0
+</pre>
+
+## Add support for func() noexcept (x all of the above)
+
+<pre>
+SF F  N A SA
+2  12 2 0 0
+</pre>
+
+## Include the option for CTAD
+
+<pre>
+SF F N A SA
+0  1 5 9 0
+</pre>
+
+## Name: callable vs any invocable
+
+<pre>
+SC C N AI SAI
+3  2 3 5  6
+</pre>
+
+## any_invocable vs invocable
+
+<pre>
+SAI AI N I SI
+3   7  2 5 1
+</pre>
+
+## Header choice
+
+<pre>
+7 &lt;functional&gt;
+11 &lt;any_invocable&gt;
+11 &lt;invocable&gt;
+3 &lt;()&gt;
+</pre>
+
+## Can get std::function from &lt;any_invocable&gt; 
+
+<pre>
+SF F N A SA
+0  1 4 4 7
+</pre>
+
+## Can get std::function from &lt;invocable&gt;
+
+<pre>
+SF F N A SA
+1  3 6 3 2
+</pre>
+
+Decide on &lt;any_invocable&gt;. Unanimous for &lt;functional&gt; to pull it in,
+even if in its own header.
+
+## Remove the null-check in the call operator and throwing of bad_function_call
+
+<pre>
+SF F N A SA
+8  2 1 0 0
+</pre>
+
+## Remove the null-check in constructors that are not nullptr_t
+
+<pre>
+std::any_callable<void(void)> ac = my_ptr_object;
+if(ac)  { /* true even if my_ptr is nullptr */ }
+</pre>
+
+<pre>
+SF F N A SA
+0  2 2 4 3
+</pre>
+
+## Perfect forwarding for converting constructor instead of by-value
+
+Unanimous
+
+## Forward to LWG for C++20
+
+<pre>
+SF F N A SA
+8  5 0 0 0
+</pre>
+
+Implementation Experience {#Impl}
+=================================
+
+There are many implementations of a move-only <tt>std::function</tt> with a
+design that is similar to this. What is presented is a conservative subset of
+those implementations. The changes suggested in LEWG, though minimal, have not
+been used in a large codebase.
+
+Previous revisions of this paper have included publicly accessible move-only
+function implementations, notably including implementations in HPX, Folly, and
+LLVM.
+
+Acknowledgments {#Ack}
+======================
+
+Thanks to Tomasz Kamiński, Tim Song, and Nevin Liber for suggestions on wording simplifications.
+
+References {#References}
+========================
+
+[1]: David Krauss: N4543 "A polymorphic wrapper for all Callable objects" <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2015/n4543.pdf">http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2015/n4543.pdf</a>
+
+[2]: Geoffrey Romer: "Bug 34 - Need type-erased wrappers for move-only callable objects" <a href="https://issues.isocpp.org/show_bug.cgi?id=34">https://issues.isocpp.org/show_bug.cgi?id=34</a>
+
+[3]: Ryan McDougall: P0288R2 "The Need for std::unique_function" <a href="https://wg21.link/p0288r2">https://wg21.link/p0288r2</a>
+
+[4]: Geoffrey Romer: N4348 "Making std::function safe for concurrency" <a href="www.open-std.org/jtc1/sc22/wg21/docs/papers/2015/n4348.html">www.open-std.org/jtc1/sc22/wg21/docs/papers/2015/n4348.html</a>
+
+[5]: Richard Smith: N4820 "Working Draft, Standard for Programming Language C++" <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2019/n4820.pdf">http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2019/n4820.pdf</a>
