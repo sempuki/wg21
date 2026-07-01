@@ -128,16 +128,18 @@
 - Retained the capture-default syntax `[mutable =]`, `[const&]`, and `[const =]`: EWG reached no consensus either to
   additionally allow or to substitute the `[=mutable]`, `[&const]`, and `[=const]` spellings.
 - Completed the proposed wording for CWG review, drafting the parts previously deferred:
-  - the restriction making a `mutable` capture ill-formed on a `constexpr` or `consteval` lambda;
   - implicit capture under the qualified capture-defaults `[mutable =]` and `[const =]`, and which explicit captures may
     accompany a qualified default (#eelis("expr.prim.lambda.capture", 2));
   - the logical-`const` specification of `[const&]`, in #eelis("expr.prim.id.unqual") and the nested re-capture rule
     (#eelis("expr.prim.lambda.capture", 14)); and
   - the non-implicit capture of `*this` under a qualified capture-default.
 - Unified the qualified by-copy member type with `auto` deduction, stripping both `const` and `volatile`.
-- Added a "Design of the Wording" section explaining the structure of the normative changes.
-- Expanded the design discussion: added "Recaptures" and "Redundant Default Captures", rewrote "Const Capture
-  By-reference", and broke "Interaction with `consteval` and `constexpr` Lambdas" out into its own section.
+- Added a "Wording Design" section explaining the structure of the normative changes.
+- Expanded the design discussion: added "Recaptures" and "Redundant Default Captures", and rewrote "Const Capture
+  By-reference".
+- Dropped the proposed restriction making a `mutable` capture ill-formed on a `constexpr` or `consteval` lambda: it was
+  unnecessary, since #eelis("expr.const") already governs when such a member may be read. Broke "Interaction with
+  `consteval` and `constexpr` Lambdas" out into its own section and rewrote it accordingly.
 
 == Changes from R6: #link("https://wiki.isocpp.org/2026-03_Croydon:EvolutionWorkingGroup:P2034R6")[EWG Discussion]
 
@@ -982,11 +984,38 @@ the closure is moved -- subject to the usual reference-lifetime caveat.
 
 == Interaction with `consteval` and `constexpr` Lambdas
 
-Reading a `mutable` member during constant evaluation is not a constant expression -- the lvalue-to-rvalue conversion on
-a `mutable` subobject is disallowed (#eelis("expr.const")). That is a restriction on _use_, not on declaration: a
-`mutable` member is otherwise fine, so a `mutable` capture would not by itself make a `constexpr` or `consteval` lambda
-ill-formed. But rather than pin down exactly when such a member may be read during constant evaluation, we
-conservatively disallow the combination until experience is accrued.
+A `mutable` capture raises no new question for a `constexpr` or `consteval` lambda. Mutating and reading local state
+during constant evaluation has been allowed since C++14 (@N3652), and a `mutable` data member is part of that -- a
+function object with a `mutable` member can be evaluated at compile time today:
+
+```cpp
+struct Counter {
+  mutable int n = 0;
+  constexpr int operator()() const { return ++n; }
+};
+
+constexpr int f() {
+  Counter c;
+  return c() + c();          // reads and writes the mutable member at compile time
+}
+static_assert(f() == 3, ""); // OK since C++14
+```
+
+The lambda spelling has worked since lambdas became usable in constant expressions in C++17: an ordinary `mutable`
+lambda already holds state it mutates and reads.
+
+```cpp
+constexpr int g() {
+  auto counter = [n = 0]() mutable { return ++n; };
+  return counter() + counter();
+}
+static_assert(g() == 3);     // OK since C++17
+```
+
+Writing `[mutable n]` declares the same kind of member as the `mutable` lambda above and behaves the same way. The one
+case that does not work -- reading a `mutable` member of an object that already existed before the evaluation began --
+is not specific to lambdas: it fails for a hand-written `mutable` member in exactly the same way. So a `mutable` capture
+needs no rule of its own, and this paper adds none.
 
 == Implementation Experience
 
@@ -1205,7 +1234,7 @@ The thesis is that the closure _is_ a class with a function object's member sema
 a capture should mean what they mean on a member -- not that a lambda is a way to write an arbitrary class. These
 residual differences are exactly what make a lambda worth having.
 
-= Design of the Wording
+= Wording Design
 
 The feature is small, and the wording is mostly small with it: in the common case it sets a cv-qualification and a
 storage-class-specifier on members the closure already declares. This section is a guide to how the normative changes
@@ -1215,8 +1244,7 @@ feature above. It is written for readers following the proposed wording closely.
 The changes touch five subclauses:
 
 - #eelis("expr.prim.id.unqual") -- the type of a name that resolves to a `const`-reference capture;
-- #eelis("expr.prim.lambda.general") -- the `const` _lambda-specifier_, and the bar on a mutable capture in a
-  `constexpr` or `consteval` lambda;
+- #eelis("expr.prim.lambda.general") -- the `const` _lambda-specifier_;
 - #eelis("expr.prim.lambda.closure") -- a note that the `const` _lambda-specifier_ has no effect;
 - #eelis("expr.prim.lambda.capture") -- the bulk: grammar, the qualified members, the capture-default rules, and nested
   re-capture; and
@@ -1234,13 +1262,12 @@ removing top-level cv-qualifiers; a mutable capture yields _V_ (declared `mutabl
 `const`-qualified _V_. _V_ is exactly what `auto` deduction produces, which is why a qualified simple-capture and the
 corresponding init-capture agree.
 
-Two terms -- _captured mutably_ and _captured by const copy_ -- are defined there rather than inlined, because three
-later places refer to them: the member's `mutable` storage class, the nested re-capture rule (#eelis(
+Two terms -- _captured mutably_ and _captured by const copy_ -- are defined there rather than inlined, because two
+later places refer to them: the member's `mutable` storage class and the nested re-capture rule (#eelis(
   "expr.prim.lambda.capture",
   14,
-)), and the `constexpr`/`consteval` restriction. Each term is defined over both the explicit capture (the _capture_
-begins with the keyword) and the implicit capture (the qualified _capture-default_), so one term serves both
-`[mutable x]` and `[mutable =]`.
+)). Each term is defined over both the explicit capture (the _capture_ begins with the keyword) and the implicit
+capture (the qualified _capture-default_), so one term serves both `[mutable x]` and `[mutable =]`.
 
 Function references are the one by-copy capture whose member is a reference rather than a value. A reference member can
 be neither `const`-qualified nor `mutable` (#eelis("dcl.ref"), #eelis("dcl.stc")), so the qualifier is simply inert
@@ -1249,11 +1276,9 @@ there; a note records this rather than carving an exception into the type rule.
 == The `const` specifier and the specifier constraints
 
 The `const` _lambda-specifier_ introduces no behavior -- the call operator is already `const` unless `mutable` or
-`static` is present -- so the closure-type wording gains only a note saying so (#eelis("expr.prim.lambda.closure", 7)).
-The new restriction runs the other way: a mutable capture may not appear on a `constexpr` or `consteval` lambda. We put
-it in #eelis("expr.prim.lambda.general", 4) beside the existing "`static` implies no _lambda-capture_" rule, and key it
-on the explicit specifiers, leaving an unmarked but constexpr-suitable lambda to fail naturally at use rather than be
-ill-formed at declaration.
+`static` is present -- so the closure-type wording gains only a note saying so (#eelis("expr.prim.lambda.closure", 7)),
+and the specifier constraints in #eelis("expr.prim.lambda.general", 4) gain only the entry forbidding `const` alongside
+an explicit object parameter and the mutual exclusion of `const`, `mutable`, and `static`.
 
 == `const&` has no member to qualify
 
@@ -1295,6 +1320,17 @@ Some cases are handled by omission. The grammar offers no production for a quali
 `[const this]` and the like are ill-formed with no constraint required. The representation of reference captures remains
 unspecified, so `[const&]` declares no member and needs no member wording. And the `const` _lambda-specifier_, being
 inert, changes no rule beyond the note noted above.
+
+A `mutable` capture on a `constexpr` or `consteval` lambda likewise needs no constraint of its own; the existing rules
+in #eelis("expr.const") already settle it. The lvalue-to-rvalue conversion that reads a member is permitted, among other
+cases, on "a non-volatile glvalue of literal type that refers to a non-volatile object whose lifetime began within the
+evaluation of _E_" -- an allowance not conditioned on the `mutable` qualifier -- so a `mutable` member is readable
+whenever the closure was constructed within the evaluation, the usual case for a closure built and called in one
+constant expression. A `mutable` subobject is excluded only from the _other_ allowance, for a glvalue referring to an
+object "usable in constant expressions": the definition of _potentially usable in constant expressions_ admits only a
+"non-mutable subobject", so a `mutable` member of a closure that already existed before the evaluation cannot be read.
+Both outcomes match a hand-written `mutable` member, so an unmarked but constexpr-suitable lambda is left to fail
+naturally at use rather than at declaration.
 
 #set heading(numbering: none, outlined: true)
 
@@ -1359,8 +1395,7 @@ Changes are relative to @N5008, using the #ins[insert] and #del[strike] conventi
   and `consteval`. If the _lambda-declarator_ contains an explicit object parameter, then no _lambda-specifier_ in the
   _lambda-specifier-seq_ shall be #ins[`const`,] `mutable`, or `static`. The _lambda-specifier-seq_ shall #del[not
     contain both `mutable` and `static`] #ins[contain at most one of `const`, `mutable`, or `static`]. If the
-  _lambda-specifier-seq_ contains `static`, there shall be no _lambda-capture_. #ins[If the _lambda-specifier-seq_
-    contains `constexpr` or `consteval`, no entity shall be captured mutably (#eelis("expr.prim.lambda.capture")).]
+  _lambda-specifier-seq_ contains `static`, there shall be no _lambda-capture_.
 ]
 
 == [expr.prim.lambda.closure]
@@ -1524,7 +1559,8 @@ On adoption, bump `__cpp_lambdas` in #eelis("cpp.predefined") to the value corre
 = Thanks
 
 Thanks to Patrick McMichael for suggesting the idea; to Nevin Liber and Matt Calabrese for important corrections; to
-Nevin Liber, Davis Herring, Barry Revzin, and Victoria Tsai for examples and suggestions; to Ville Voutilainen for the
+Nevin Liber, Davis Herring, Barry Revzin, and Victoria Tsai for examples and suggestions; to Hana Dušíková and Ville
+Voutilainen for observing that the `constexpr`/`consteval` restriction was unnecessary; to Ville Voutilainen for the
 exploratory implementation; and to Daveed Vandevoorde for feedback on the wording.
 
 #pagebreak()
