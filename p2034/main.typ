@@ -135,6 +135,10 @@
   capture need not create a member, and that this is captured by reference, are in #eelis("expr.prim.lambda.capture"),
   not #eelis("expr.prim.lambda.closure").
 - Updated the #eelis("expr.const") citations for its split into #eelis("expr.const.core") and #eelis("expr.const.init").
+- Rebased the proposed wording from N5008 onto @N5054. Paragraph numbering in #eelis("expr.prim.lambda.closure") had
+  shifted, and @P3847 moved the declaration-order sentence out of #eelis("expr.prim.lambda.capture", 10) and narrowed
+  it: members introduced for explicit captures now follow the order of those captures. Narrowed the corresponding claim
+  in @sec-remaining-gaps[Section] and added @P3847 to the list of gaps the language has closed.
 
 == Changes from R7: #link("https://wiki.isocpp.org/2026-06_Brno:EvolutionWorkingGroup:P2034R6")[EWG Discussion]
 
@@ -1242,6 +1246,7 @@ lets the sugar express qualifications the desugared class already supports.
   - @P0428, @P0780 -- explicit template parameters for generic lambdas, and pack-expansion init-captures (C++20)
   - @P0624 -- captureless lambdas default-constructible and assignable (C++20)
   - @P2996 -- reflection over closure members (C++26)
+  - @P3847 -- explicit captures declared in lexical order (C++29)
   - @P3963 -- copy and move assignment for captured lambdas (EWG-approved, pending CWG)
 
 5. *It is the orthogonal design.*
@@ -1286,11 +1291,12 @@ int main() {
 We are not proposing a new model of lambdas; we are completing one the language has converged on since C++11 -- letting
 the programmer spell the `const` and `mutable` members the desugared function object could always have held.
 
-== Remaining Gaps
+== Remaining Gaps <sec-remaining-gaps>
 
 The standard deliberately withholds three structural guarantees an ordinary class would give:
 
-1. the declaration order of capture members is unspecified (#eelis("expr.prim.lambda.capture", 10)),
+1. the declaration order of capture members is unspecified, except that members introduced for explicit captures
+  follow the order of those captures (#eelis("expr.prim.lambda.capture", 15)),
 2. the implementation may vary their size, alignment, trivial-copyability, and standard-layout-ness
   (#eelis("expr.prim.lambda.closure", 4)), and
 3. the closure type is not an aggregate (#eelis("expr.prim.lambda.closure", 4)).
@@ -1422,7 +1428,7 @@ naturally at use rather than at declaration.
 
 = Proposed Wording
 
-Changes are relative to @N5008, using the #ins[insert] and #del[strike] convention.
+Changes are relative to @N5054, using the #ins[insert] and #del[strike] convention.
 
 == [expr.prim.id.unqual]
 
@@ -1591,10 +1597,10 @@ Changes are relative to @N5008, using the #ins[insert] and #del[strike] conventi
     #ins[An entity captured by copy is _captured by const copy_ if it is explicitly captured by a _capture_ that begins
       with `const`, or it is implicitly captured and the _capture-default_ is `const =`.]
 
-    For each entity captured by copy, an unnamed non-static data member is declared in the closure type. The declaration
-    order of these members is unspecified. #del[The type of such a data member is the referenced type if the entity is a
-      reference to an object, an lvalue reference to the referenced function type if the entity is a reference to a
-      function, or the type of the corresponding captured entity otherwise.] #ins[The type of such a data member is an
+    For each entity captured by copy, an unnamed non-static data member is declared in the closure type. #del[The type
+      of such a data member is the referenced type if the entity is a reference to an object, an lvalue reference to
+      the referenced function type if the entity is a reference to a function, or the type of the corresponding
+      captured entity otherwise.] #ins[The type of such a data member is an
       lvalue reference to the referenced function type if the entity is a reference to a function. Otherwise, letting
       _U_ be the referenced type if the entity is a reference to an object and the type of the entity otherwise, and _V_
       be _U_ with any top-level cv-qualifiers removed, it is]
