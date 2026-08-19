@@ -758,10 +758,9 @@ takes `std::cref` or `std::as_const`, neither as concise nor as discoverable as 
 
 We therefore depart from analogy with struct members briefly, and define the meaning `[const& x]` directly: within the
 body, `x` is a `const` lvalue reference, and any nested lambda that re-captures it observes that `const` (see
-@sec-recaptures[Section]). The usual reference-lifetime caveats apply (@sec-reference-lifetime[Section]). Unlike the
-by-copy cases, this reads the same on a `const` or a `mutable` lambda, because the `const` is on the reference itself
-rather than supplied by the call operator. That the call operator supplies no `const` through a reference is equally why
-`[mutable&]` is unnecessary (@sec-mutable-byref[Section]): the referent is already modifiable.
+@sec-recaptures[Section]). The usual reference-lifetime caveats apply (@sec-reference-lifetime[Section]). The call
+operator's `const` is shallow on references, so it never reaches the referent -- which is also why `[mutable&]` would
+add nothing (@sec-mutable-byref[Section]).
 
 === Syntax
 
@@ -772,6 +771,24 @@ rather than supplied by the call operator. That the call operator supplies no `c
   [```cpp [const& x...]() mutable {}```], [simple capture of pack `x`, each by `const` reference],
   [```cpp [const& x = init]() mutable {}```], [init-capture binding a `const` reference to `init`],
   [```cpp [const& ...xs = init]() mutable {}```], [init-capture pack (@P0780), each binding a `const` reference],
+)
+
+=== Applicability
+
+Unlike the by-copy forms, a `const&` capture is never redundant. On a `const` lambda ```cpp [x]``` already yields a
+`const` member, so ```cpp [const x]``` adds nothing; but ```cpp [&x]``` does not yield a `const` view, because the call
+operator's `const` does not reach the referent. `[const& x]` is the only way to ask for one, and it asks for the same
+thing on either kind of lambda. The cells below give the meaning of `x` in the body rather than a desugared `struct`,
+since a reference capture need not declare a member to show.
+
+#table(
+  columns: (auto, 1fr, 1fr),
+  align: horizon,
+  fill: (x, y) => if x == 0 or y == 0 { quote-gray },
+  [], [```cpp () const```], [```cpp () mutable```],
+
+  [```cpp [&x]```], [`x` is a modifiable lvalue], [`x` is a modifiable lvalue],
+  [```cpp [const& x]```], [`x` is a `const` lvalue], [`x` is a `const` lvalue],
 )
 
 == Capture Defaults
@@ -877,7 +894,23 @@ reference_: the closure conceptually holds the pointer, though the standard leav
 actually declared for it (#eelis("expr.prim.lambda.capture", 12)). `[*this]` captures the object _by copy_, declaring an
 unnamed non-static data member of the enclosing class type (#eelis("expr.prim.lambda.capture", 10)). We recommend
 disallowing `const` and `mutable` on all four spellings -- `[const this]`, `[mutable this]`, `[const *this]`, and
-`[mutable *this]` -- until experience is accrued.
+`[mutable *this]` -- until experience is accrued. The obstacle differs between the two, and neither depends on which
+qualifier is written:
+
+#table(
+  columns: (auto, 1fr, 1fr),
+  align: horizon,
+  fill: (x, y) => if x == 0 or y == 0 { quote-gray },
+  [], [unqualified], [`const` or `mutable`],
+
+  [```cpp [this]```],
+  [captures the enclosing object by reference],
+  [ill-formed: no by-copy member for the qualifier to attach to],
+
+  [```cpp [*this]```],
+  [captures the object by copy, as an unnamed member],
+  [ill-formed: that member is unnamed, so the const-propagation wording does not reach it],
+)
 
 For `[const this]` and `[mutable this]`, recall that capture is bitwise `const`: a qualifier names the captured pointer,
 not its pointee. But `this` is a prvalue (#eelis("expr.prim.this", 4)) captured by reference, so there is no by-copy
@@ -897,7 +930,8 @@ const-propagation wording this paper threads through #eelis("expr.prim.id.unqual
 == Deducing the NSDM Type
 
 A by-copy capture requires a non-static data member (#eelis("expr.prim.lambda.capture", 10)); the question is its type.
-The two existing capture forms deduce it by different rules.
+The two existing capture forms deduce it by different rules. This proposal changes neither, and leaves an unqualified
+by-copy capture exactly as it is today; it settles only which of the two rules a _qualified_ capture should follow.
 
 A _simple-capture_ keeps the captured entity's type, retaining its cv-qualifiers: the member type is the referenced type
 if the entity is a reference to an object, an lvalue reference to the referenced function type if it is a reference to a
@@ -913,6 +947,23 @@ An _init-capture_ instead behaves "as if it declares ... a variable of the form 
   3,
 ), #eelis("temp.deduct.call", 2, 3)).
 
+The two rules, side by side:
+
+#table(
+  columns: (auto, 1fr, 1fr),
+  align: horizon,
+  fill: (x, y) => if x == 0 or y == 0 { quote-gray },
+  [Entity type of `x`], [```cpp [x]``` (simple-capture)], [```cpp [y = x]``` (init-capture)],
+  [```cpp T```], [```cpp T```], [```cpp T```],
+  [```cpp const T```], [```cpp const T```], [```cpp T```],
+  [```cpp volatile T```], [```cpp volatile T```], [```cpp T```],
+  [```cpp T&```], [```cpp T```], [```cpp T```],
+  [```cpp const T&```], [```cpp const T```], [```cpp T```],
+  [```cpp T(&)()```], [```cpp T(&)()```], [```cpp T(*)()```],
+)
+
+The `const T&` row is the rule @sec-recaptures[Section] depends on: a copy taken of a `const` view is itself `const`.
+
 === `mutable const T`
 
 Applying `mutable` to the cv-preserving simple-capture type can instead yield an ill-formed `mutable const T` --
@@ -926,6 +977,8 @@ auto f = [mutable x]() { x = 0; };  // ??
 Because an init-capture deduces by `auto`, it is not affected by this problem: `[mutable x = e]` is
 `mutable auto x = e;`, and `[const x = e]` is `const auto x = e;`. `auto` never produces a top-level `const`, so
 `mutable` never collides with one.
+
+That leaves two candidate rules for a qualified simple-capture:
 
 #table(
   columns: (auto, auto, 1fr, 1fr),
@@ -945,9 +998,11 @@ Because an init-capture deduces by `auto`, it is not affected by this problem: `
   deduction drops any top-level cv-qualifiers, so `mutable` never collides with a `const`; `const` then adds one. This
   is uniform across both qualifiers and both capture forms.
 
-Here we adopt (2): A programmer who writes `mutable` or `const` on a capture is requesting a customization, so
-faithfully preserving the source cv-qualifiers -- the simple-capture default -- is neither expected nor useful; deducing
-as an init-capture does makes a qualified simple-capture and the corresponding init-capture produce the same member, and
+=== The Adopted Rule
+
+We adopt (2): A programmer who writes `mutable` or `const` on a capture is requesting a customization, so faithfully
+preserving the source cv-qualifiers -- the simple-capture default -- is neither expected nor useful; deducing as an
+init-capture does makes a qualified simple-capture and the corresponding init-capture produce the same member, and
 removes the `mutable const T` hazard.
 
 For an entity of type `T`:
@@ -956,11 +1011,13 @@ For an entity of type `T`:
 - `const` produces a member of type `const std::remove_cvref_t<T>`.
 
 Stripping all top-level cv-qualifiers -- not just `const` -- is exactly what `auto` deduction does, so a qualified
-simple-capture and the corresponding init-capture deduce the same member type even for a `volatile` entity.
+simple-capture and the corresponding init-capture deduce the same member type even for a `volatile` entity. The one
+exception is a reference to a function, which the type rule settles before the qualified branches apply: the
+simple-capture keeps a reference, while the init-capture decays to a pointer.
 
-An unqualified by-copy capture is unchanged. The qualifier is a genuine member qualifier, not an "as-if" treatment
-confined to the call operator: the closure is exactly the struct a programmer would hand-write, so `decltype`, overload
-resolution, and reflection (@P2996) all observe the real member type.
+The qualifier is a genuine member qualifier, not an "as-if" treatment confined to the call operator: the closure is
+exactly the struct a programmer would hand-write, so `decltype`, overload resolution, and reflection (@P2996) all
+observe the real member type.
 
 == Recaptures <sec-recaptures>
 
@@ -1349,7 +1406,8 @@ The member type is stated as prose rather than as `std::remove_cvref_t<T>`, beca
 library. The two qualified cases reduce to a single helper: from the existing cv-faithful captured type _U_, form _V_ by
 removing top-level cv-qualifiers; a mutable capture yields _V_ (declared `mutable`), a const capture yields
 `const`-qualified _V_. _V_ is exactly what `auto` deduction produces, which is why a qualified simple-capture and the
-corresponding init-capture agree.
+corresponding init-capture agree -- except for a reference to a function, which the first sentence of the type rule
+settles before _V_ is reached.
 
 Two terms -- _captured mutably_ and _captured by const copy_ -- are defined there rather than inlined, because two
 later places refer to them: the member's `mutable` storage class and the nested re-capture rule (#eelis(
