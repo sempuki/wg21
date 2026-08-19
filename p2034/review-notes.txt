@@ -1,0 +1,150 @@
+P2034 -- what changed after your citation review
+================================================
+
+13 of your 20 items went in as suggested. 7 went in differently. 5 further
+changes came out of checking them. Your lifetime question is answered and
+has its own new section.
+
+Two things need your call, at the bottom.
+
+
+1. Taken as suggested
+---------------------
+
+  4.5   [dcl.stc] 8                         mutable references
+  4.6   [expr.prim.lambda.capture] 12       unspecified whether a member exists
+  4.7   [dcl.stc] 8                         mutable references
+  4.8   [expr.prim.lambda.capture] 12       this: unspecified whether a member exists
+  4.8   [expr.prim.lambda.capture] 11       *this rewritten to the member
+  4.9   dropped N3610 and N3648             (still cited in section 6)
+  5.1   [class.copy.assign] 7               const member deletes assignment
+  5.1   [expr.prim.lambda.closure] 17       lambdas delete assignment anyway
+  6.1   [expr.prim.lambda.capture] 10       declaration order unspecified
+  6.1   [expr.prim.lambda.closure] 4        layout freedoms, and not an aggregate
+  6.1   [expr.prim.lambda.closure] 17       no default ctor, deleted copy assign
+  6.1   [expr.prim.lambda.closure] 11       conversion to function pointer
+  7.3   [expr.prim.id.unqual] 4             where the const-ref paragraph attaches
+
+Your closure -> capture correction was right in all three places it came up
+(4.6, 4.8, 7.3). None of that text is in [expr.prim.lambda.closure].
+
+
+2. Went in differently
+----------------------
+
+1    [func.wrap.move.ctor] -- left bare, no paragraph.
+     The claim spans three paragraphs: 4 binds VT to the closure type, 5.3
+     applies the constraint, 1 is where const actually appears. Any single
+     number is wrong, and three in a Background aside is too much apparatus.
+
+4.6  "odr-use names the original entity" -- used paragraph 11, not 13.
+     13 is about capturing a reference variable by reference. The general
+     claim rests on 11, which transforms only by-copy captures. Reworded to
+     "only by-copy captures are rewritten into member accesses" so the
+     citation says what the sentence says.
+
+4.6  pointer sentence -- reworded, keeping the citation:
+     "Capturing a pointer declares a member of that pointer type".
+     Matches how 5.4 already phrases the same claim.
+
+4.9  auto deduction -- both citations, no extra prose:
+     "...deduced by auto, which strips top-level cv-qualifiers and
+     references ([dcl.type.auto.deduct] 3, [temp.deduct.call] 2.3)."
+
+5.1  move constructor -- paragraphs 15 and 9, not [forward] 10.
+     Your chain describes moving a const closure object. The sentence is
+     about a const member inside an ordinary closure: paragraph 15 says the
+     move ctor initializes each member from "an xvalue referring to the
+     parameter", so a const M member gives a const M xvalue, which cannot
+     bind to M(M&&) from paragraph 9.
+
+7.1  reference member -- [basic.type.qualifier] 1 instead of [dcl.ref].
+     "A function or reference type is always cv-unqualified." [dcl.ref] 1
+     is about writing a declarator and splits into ill-formed vs ignored;
+     the note is about a member type the standard forms by prose. Changed
+     the citation in the note too, so both now cite the same rule.
+
+7.5  [expr.const] -- three citations, not one. The passage makes two
+     separate claims. See item 3 below.
+
+
+3. What checking these turned up
+--------------------------------
+
+[expr.const] has been split. It is now a clause containing
+[expr.const.core], [expr.const.init] and four others. The lvalue-to-rvalue
+allowance in 7.5 is [expr.const.core] 2.10.3; the "non-mutable subobject"
+rule is [expr.const.init] 8.5. Bare [expr.const] still resolves as an
+umbrella, so the lead-in is unchanged.
+
+The base draft is stale. The paper says N5008; the current one is N5054.
+The [expr.const] split is what the drift looks like in practice.
+
+[expr.prim.this] paragraph 1 no longer says this is a prvalue -- it says
+"names a pointer to the object". The prvalue statement is paragraph 4.
+4.8 cited it bare; now cites 4.
+
+Four other changes, ours not yours:
+- 4.5 gained a second reason [mutable&] is unnecessary: the call operator's
+  const never reaches through a reference, so [&x] is already modifiable.
+  4.6 now closes that loop.
+- 4.5 and 4.7 now say the grammar admits no such production, with [dcl.stc]
+  as the reason for omitting it rather than the rule that rejects it.
+- 7.1 said a note records the function-reference case "rather than carving
+  an exception into the type rule". The mutable storage class does carve
+  one ("and is not a reference to a function"). Reworded.
+
+
+4. The lifetime question
+------------------------
+
+Answered, in a new section 4.11, "Reference Captures of Temporaries".
+
+You are right that the existing rules settle it, and your reasoning holds:
+braced aggregate initialization does get full lifetime extension. The
+full-expression exception in [class.temporary] 6 is narrower than it looks
+-- it covers parenthesized expression-lists, new-initializers and reference
+parameters, not braced init.
+
+Answers to Yihan's three questions, verified on Clang 21 and GCC 16:
+
+  (c) The temporary belongs to one closure object -- the one whose
+      init-capture created it.
+  (b) Yes, a copy that outlives the original dangles. Copies bind their own
+      reference to the same object and extend nothing; the temporary dies
+      with the original.
+  (a) Returning is the sharp edge. The temporary does not survive the
+      return. By guaranteed copy elision the closure object is the
+      caller's, but the temporary was materialized in the callee's frame.
+
+That last one is worth knowing about. A literal reading of the wording says
+the opposite: the init-capture variable's lifetime ends with the closure
+object's ([expr.prim.lambda.capture] 6), and the temporary persists for the
+lifetime of the reference ([class.temporary] 6). If the closure is the
+caller's, so is the temporary -- which no implementation does and none
+could. It is reachable in C++26 and not introduced by us, so 4.11 notes it
+for CWG and suggests a core issue rather than handling it here.
+
+One more thing: GCC rejects [&x = g()] for a const-returning g outright,
+though it accepts auto& x = g();. That contradicts the "as if it declares
+auto init-capture ;" rule, so it looks like a bug. It also means the
+existing spelling is barely exercised, which strengthens the case that this
+is newly reachable rather than merely newly convenient. 4.11 says so.
+
+
+5. Still to do
+--------------
+
+The paragraph 10 repetition. Taking this one -- no need for you to compile
+the list. 4.6 and 5.4 now phrase the claim the same way deliberately, so
+some of the repetition is load bearing; the rest probably is not.
+
+Your 4.8 rewrite. Send it if you get to it, but not a blocker -- nothing
+there has been touched beyond the two citations and [expr.prim.this] 4.
+
+Rebasing N5008 -> N5054. Doing this now, as its own commit.
+
+Two things deliberately not done yet. The wording reading in 4.11 is put to
+CWG as a question rather than asserted as a defect; worth their view before
+anyone calls it one. And the GCC behavior is described but not filed --
+better to show this to Ville and CWG first.
