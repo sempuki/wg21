@@ -1,11 +1,10 @@
 P2034 -- what changed after your citation review
 ================================================
 
-13 of your 20 items went in as suggested. 7 went in differently. 5 further
-changes came out of checking them. Your lifetime question is answered and
-has its own new section.
-
-Two things need your call, at the bottom.
+13 of your 20 items went in as suggested. 7 went in differently. Checking
+them turned into a fair amount of other work on the same sections, which is
+in section 5. Your lifetime question is answered and has its own new
+section.
 
 
 1. Taken as suggested
@@ -132,17 +131,68 @@ existing spelling is barely exercised, which strengthens the case that this
 is newly reachable rather than merely newly convenient. 4.11 says so.
 
 
-5. Still to do
+5. Other changes to the sections you commented on
+-------------------------------------------------
+
+Checking your items turned into some restructuring of the same sections, so
+these are worth knowing about before you next read the paper.
+
+4.6 gained an Applicability subsection, which the two by-copy sections
+already had and this one did not. It has content rather than just symmetry:
+unlike the by-copy forms, a const& capture is never redundant, because [&x]
+does not give a const view on a const lambda. The cells give the meaning of
+x in the body rather than a desugared struct, since a reference capture need
+not declare a member.
+
+4.8 gained a 2x2 table. Six spellings were argued across three paragraphs
+with two different rationales buried in them. const and mutable share a
+column, because the obstacle depends only on whether the target is captured
+by reference or by copy, not on which qualifier is written. This is the
+section you said you would write about, so it may want reconciling with
+whatever you had in mind.
+
+4.9 gained a table of the existing rules, above the one comparing candidate
+designs, so it is clear which existing form each design column corresponds
+to. It includes a const T& row, which is where "a copy of a const view is
+const" in 4.10 comes from. The section now also states its scope in the
+opening rather than at the end, and the decision has its own subsection.
+
+Building that table turned up a claim that was wrong in two places. Both 4.9
+and 7.1 said a qualified simple-capture and the corresponding init-capture
+deduce the same member type. For a reference to a function they do not: the
+type rule settles that case before the qualified branches apply, so
+[const fr] leaves T(&)() with the qualifier inert while [const y = fr]
+decays to const T(*)(). Verified on Clang 21 and GCC 16. Both now note it.
+
+7.5 gained the lifetime case, since 4.11 concludes the existing rules settle
+it and that section is where "needed no wording" is catalogued.
+
+
+6. Still to do
 --------------
 
-The paragraph 10 repetition. Taking this one -- no need for you to compile
-the list. 4.6 and 5.4 now phrase the claim the same way deliberately, so
-some of the repetition is load bearing; the rest probably is not.
+The paragraph 10 repetition. Looked at it and left it alone. Of the 13
+citations of paragraph 10, only 6 are for the same fact, and the rest are
+its type rule, the *this case, or the wording itself. 4.6 and 5.4 now phrase
+that fact the same way deliberately. Six citations of one paragraph across
+34 pages, all correct, did not seem worth cutting -- but say if you disagree.
 
-Your 4.8 rewrite. Send it if you get to it, but not a blocker -- nothing
-there has been touched beyond the two citations and [expr.prim.this] 4.
+Your 4.8 rewrite. 4.8 now has the table described in section 5, so there is
+something concrete to reconcile against rather than a blank space. Send
+yours whenever; one of us may end up redoing it.
 
-Rebasing N5008 -> N5054. Doing this now, as its own commit.
+Rebasing N5008 -> N5054. Done. It was not cosmetic: paragraph numbering in
+[expr.prim.lambda.closure] had shifted, so the citations were wrong for the
+base we claimed, and P3847 (Lexical order for lambdas, adopted 2026-06)
+moved the declaration-order sentence out of [expr.prim.lambda.capture] 10
+and narrowed it -- explicit captures now follow the order they are written
+in. The proposed wording quoted that sentence as unchanged base text, so the
+edit no longer applied. Narrowed the claim in 6.1, and added P3847 to the
+list of gaps the language has closed, since it closes one.
+
+Yihan is credited in Thanks for raising the lifetime question. Worth showing
+4.11 to them before the mailing, since their example is the case that
+breaks.
 
 Two things deliberately not done yet. The wording reading in 4.11 is put to
 CWG as a question rather than asserted as a defect; worth their view before

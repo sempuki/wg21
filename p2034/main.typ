@@ -1071,11 +1071,11 @@ the closure is moved -- subject to the usual reference-lifetime caveat.
 takes an initializer that is already `const` -- a function returning `const T`, say -- since `auto&` will not bind to a
 non-`const` prvalue, which is why ```cpp [&x = f()]``` is normally an error. `[const& x = bar()]` works with any
 ordinary `bar()`. This proposal turns an obscure corner into an idiomatic spelling, so the lifetime question deserves an
-answer. The existing spelling is barely exercised: GCC rejects ```cpp [&x = g()]``` for a `const`-returning `g`
-outright, though it accepts the equivalent ```cpp auto& x = g();```.
+answer.
 
-The existing rules give one. An _init-capture_ behaves as if it declares a variable of the form `auto` _init-capture_
-`;`, and for a capture by reference "the variable's lifetime ends when the closure object's lifetime ends" (#eelis(
+The answer follows from the existing rules. An _init-capture_ behaves as if it declares a variable of the form `auto`
+_init-capture_ `;`, and for a capture by reference "the variable's lifetime ends when the closure object's lifetime
+ends" (#eelis(
   "expr.prim.lambda.capture",
   6,
 )); a temporary bound to that reference persists for the lifetime of the reference (#eelis("class.temporary", 6)). The
@@ -1112,9 +1112,11 @@ g();                                      // dangling
 By guaranteed copy elision the closure object is the caller's, but the temporary was materialized in the callee's frame
 and is destroyed when `make` returns. This is diagnosable, and is diagnosed: for the spelling reachable today, Clang
 reports _"returning address of local temporary object"_ with the note _"captured by reference via initialization of
-lambda capture"_. The same happens without lambdas -- a returned aggregate with a reference member bound to a temporary
-loses that temporary at the return, on both GCC and Clang -- so this is how reference lifetime behaves across a return
-generally, not something particular to closures.
+lambda capture"_. GCC does not accept that spelling at all -- it rejects ```cpp [&x = g()]``` for a `const`-returning
+`g`, though it accepts the equivalent ```cpp auto& x = g();``` -- so the existing form is barely exercised. The same
+happens without lambdas, though: a returned aggregate with a reference member bound to a temporary loses that temporary
+at the return, on both GCC and Clang, so this is how reference lifetime behaves across a return generally, not something
+particular to closures.
 
 We would welcome CWG's view on how the wording is meant to be read here. Taken literally, it appears to say something
 else: if the returned closure object's lifetime is the caller's, then so is the _init-capture_ variable's (#eelis(
@@ -1482,6 +1484,13 @@ cannot be read.
 Both outcomes match a hand-written `mutable` member, so an unmarked but constexpr-suitable lambda is left to fail
 naturally at use rather than at declaration.
 
+The lifetime of a temporary bound by a `const&` capture also needs no wording of its own
+(@sec-reference-lifetime[Section]). An _init-capture_ is already specified as a variable declaration
+(#eelis("expr.prim.lambda.capture", 6)), so the ordinary rule for a reference bound to a temporary
+(#eelis("class.temporary", 6)) reaches it unchanged; this proposal widens what such a capture can bind to, not how long
+the bound object lives. One reading of those two rules together, for the case where the closure is returned, is put to
+CWG in that section.
+
 #set heading(numbering: none, outlined: true)
 
 = Proposed Wording
@@ -1710,8 +1719,9 @@ On adoption, bump `__cpp_lambdas` in #eelis("cpp.predefined") to the value corre
 
 Thanks to Patrick McMichael for suggesting the idea; to Nevin Liber and Matt Calabrese for important corrections; to
 Nevin Liber, Davis Herring, Barry Revzin, and Victoria Tsai for examples and suggestions; to Hana Dušíková and Ville
-Voutilainen for observing that the `constexpr`/`consteval` restriction was unnecessary; to Ville Voutilainen for the
-exploratory implementation; and to Daveed Vandevoorde for feedback on the wording.
+Voutilainen for observing that the `constexpr`/`consteval` restriction was unnecessary; to Yihan Wang for raising the
+lifetime of a `const&` capture bound to a temporary, which became @sec-reference-lifetime[Section]; to Ville Voutilainen
+for the exploratory implementation; and to Daveed Vandevoorde for feedback on the wording.
 
 #pagebreak()
 
