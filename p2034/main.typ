@@ -103,7 +103,7 @@
   [Lakshay Garg `<lakshayg.xyz@gmail.com>`],
 
   "GitHub Issue", link("https://wg21.link/P2034/github"),
-  "Source", link("https://github.com/lakshayg/wg21/tree/main/p2034"),
+  "Source", link("https://github.com/sempuki/wg21/tree/master/p2034"),
 )
 
 #outline(depth: 2)
