@@ -1276,8 +1276,6 @@ lets the sugar express qualifications the desugared class already supports.
 
 1. *The standard specifies the closure as a class.*
   - #eelis("expr.prim.lambda.closure", 1) -- "a unique, unnamed non-union class type"
-  - #eelis("expr.prim.lambda.capture", 10), @CWG756 -- by-copy captures are non-static data members that retain the
-    entity's cv-qualifiers
   - #eelis("expr.prim.lambda.closure", 7) -- the call operator is a member; special members are "implicitly defined as
     usual"
   - #eelis("expr.prim.lambda.capture", 6), @N3610, @N3648 -- an init-capture is defined as an `auto` variable
@@ -1300,7 +1298,6 @@ lets the sugar express qualifications the desugared class already supports.
     be real
 
 4. *Each revision has closed a gap with ordinary classes, never opened one.*
-  - @CWG756 -- cv-faithful capture members (C++11)
   - @N3649, @N3610, @N3648 -- generic lambdas and init-captures (C++14)
   - @P0428, @P0780 -- explicit template parameters for generic lambdas, and pack-expansion init-captures (C++20)
   - @P0624 -- captureless lambdas default-constructible and assignable (C++20)
