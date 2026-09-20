@@ -1067,15 +1067,20 @@ the closure is moved -- subject to the usual reference-lifetime caveat.
 
 == Reference Captures of Temporaries <sec-reference-lifetime>
 
-`[const& x = init]` can bind to a temporary. The language already permits this, but it is newly easy to write: today it
-takes an initializer that is already `const` -- a function returning `const T`, say -- since `auto&` will not bind to a
-non-`const` prvalue, which is why ```cpp [&x = f()]``` is normally an error. `[const& x = bar()]` works with any
-ordinary `bar()`. This proposal turns an obscure corner into an idiomatic spelling, so the lifetime question deserves an
-answer.
+The language allows binding temporaries to `const` references and extends their lifetime to match the lifetime of the
+reference. This makes it easy to use const references but also creates a common footgun:
 
-The answer follows from the existing rules. An _init-capture_ behaves as if it declares a variable of the form `auto`
-_init-capture_ `;`, and for a capture by reference "the variable's lifetime ends when the closure object's lifetime
-ends" (#eelis(
+```cpp
+const Foo& doStuffWithFoo() {
+  const Foo& foo = makeFoo(); // lifetime extended
+  // safe to use foo here
+  return foo; // dangling! lifetime was extended only for the lifetime of foo
+}
+```
+
+`const` captures in lambdas suffer from the same issue. An _init-capture_ behaves as if it declares a variable of the
+form `auto` _init-capture_ `;`, and for a capture by reference "the variable's lifetime ends when the closure object's
+lifetime ends" (#eelis(
   "expr.prim.lambda.capture",
   6,
 )); a temporary bound to that reference persists for the lifetime of the reference (#eelis("class.temporary", 6)). The
