@@ -1181,17 +1181,21 @@ tried on #link("https://godbolt.org/z/9fcoYeMMf")[Compiler Explorer].
 
 == Consequences of Const Members <sec-const-consequences>
 
-Because the member is genuinely `const`, it carries the ordinary consequences of a `const` data member -- nothing
+Because const capture creates a `const` NSDM, it carries the ordinary consequences of a `const` data member -- nothing
 lambda-specific. A `const` member is copied rather than moved by the defaulted move constructor -- you cannot move from
 a `const` object. The move constructor initializes each member from the corresponding member of an xvalue referring to
 its parameter (#eelis("class.copy.ctor", 15)), so a `const M` member yields a `const M` xvalue, which cannot bind to
-`M(M&&)` (#eelis("class.copy.ctor", 9)); the copy constructor is selected instead. So the closure's move constructor is
-`noexcept` only when the member's _copy_ constructor is. Containers notice -- `std::vector` reallocation uses
-`move_if_noexcept`, so a member with a throwing copy (e.g. `std::string`) is copied on every growth:
+`M(M&&)` (#eelis("class.copy.ctor", 9)); the copy constructor is selected instead.
+
+So the closure's move constructor is `noexcept` only when the const-captured member's _copy_ constructor is `noexcept`
+(uncommon because copying requires allocation).
+
+Containers notice -- `std::vector` reallocation uses `move_if_noexcept`, so a `vector` containing lambdas that capture
+such objects will copy lambdas on every growth.
 
 ```cpp
 auto concatWith(const std::string x) {  // note the const
-  return [x] (std::string y) {          // deduce NSDM as `const std::string`
+  return [x] (std::string y) {          // deduce NSDM as `const std::string`, simulating a const capture
     return x + y;
   };
 }
@@ -1206,8 +1210,8 @@ int main() {
 }
 ```
 
-This regression is not introduced by the proposal: `[x]` of a `const std::string` already produces a `const` member with
-exactly this behavior today (@CWG756). A const capture only makes the request explicit. Two further consequences follow
+This regression is not introduced by the proposal: `[x]` of a `const std::string` already produces a `const` member
+with exactly this behavior today. A const capture only makes the request explicit. Two further consequences follow
 from the same class rule:
 
 - *Assignment.* A `const` member also deletes copy and move assignment (#eelis("class.copy.assign", 7)). This is inert
