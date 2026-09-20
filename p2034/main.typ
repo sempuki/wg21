@@ -775,11 +775,11 @@ add nothing (@sec-mutable-byref[Section]).
 
 === Applicability
 
-Unlike the by-copy forms, a `const&` capture is never redundant. On a `const` lambda ```cpp [x]``` already yields a
-`const` member, so ```cpp [const x]``` adds nothing; but ```cpp [&x]``` does not yield a `const` view, because the call
-operator's `const` does not reach the referent. `[const& x]` is the only way to ask for one, and it asks for the same
-thing on either kind of lambda. The cells below give the meaning of `x` in the body rather than a desugared `struct`,
-since a reference capture need not declare a member to show.
+Unlike the by-copy forms, a `const&` capture of a non-const object is never redundant. On a `const` lambda
+```cpp [x]``` already prevents mutation of ```cpp x```, so ```cpp [const x]``` adds nothing; but ```cpp [&x]```
+does not yield a `const` view, because the call operator's `const` does not reach the referent. `[const& x]` is the
+only way to ask for one, and it asks for the same thing on either kind of lambda. The cells below give the meaning
+of `x` in the body rather than a desugared `struct`, since a reference capture need not declare a member to show.
 
 #table(
   columns: (auto, 1fr, 1fr),
@@ -844,7 +844,7 @@ A qualified capture-default applies its qualifier only to the entities it captur
 `this` or `*this` is captured by its own rules and is unaffected by the default's qualifier. Combined with
 @sec-this[Section] -- where `this` and `*this` may not themselves be qualified -- this fixes every combination:
 `[mutable =, this]`, `[const =, *this]`, `[const&, *this]`, and so on capture `this`/`*this` normally, while
-`[mutable =, const this]` and the like are ill-formed.
+`[mutable =]`, `[const this]` and the like are ill-formed.
 
 === Redundant Default Captures
 
@@ -1164,7 +1164,7 @@ needs no rule of its own, and this paper adds none.
 
 == Implementation Experience
 
-Ville Voutilainen implemented this proposal, including its extensions, in GCC with regression tests, and reported:
+Ville Voutilainen implemented an old version of this proposal, in GCC with regression tests, and reported:
 
 #quote[
   In general, the implementation was very straightforward, after discussing the approach with the maintainer, and coming
@@ -1453,7 +1453,7 @@ any number of plain-reference intermediaries, but it also makes the two paragrap
 well-founded: each step moves one lambda outward and terminates at the outermost. Still, it is the part of the wording
 most worth a second look, and CWG may prefer to restate it as a single inductive definition.
 
-== Capture-defaults reduce to one redundancy rule
+== Capture-defaults reduce to no redundancy rule
 
 The existing #eelis("expr.prim.lambda.capture", 2) forbids an explicit capture that matches the _capture-default_,
 phrased two ways: a prohibition for `&`, a whitelist for `=`. With qualifiers, the clean generalization is a single
