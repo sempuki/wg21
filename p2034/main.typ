@@ -322,8 +322,8 @@ A type is #link("https://isocpp.org/wiki/faq/const-correctness#mutable-data-memb
 its members -- a cache, a mutex, an accumulator -- can be mutated without changing the object's observable state; such
 members are declared `mutable` so that a `const` object can still update them.
 
-A lambda has no way to declare a `mutable` member, so these standard types -- and any other const-correct callable
-wrapper -- cannot hold a logically const lambda today:
+These standard types -- and any other const-correct callable wrapper -- cannot hold a logically const lambda today,
+because a lambda has no way to declare a `mutable` member:
 
 ```cpp
 move_only_function<void() const> f =
@@ -548,8 +548,8 @@ obviously strong use case of its own.
 
 == Summary
 
-Both `const` and `mutable` extend to lambda captures in a way that matches the common model of a lambda -- shorthand
-for an object of a callable struct -- is easy to implement, and follows the language's direction:
+`const` and `mutable` extend cleanly to lambda captures. The design is easy to implement, follows the language's
+direction, and matches the common model of a lambda -- shorthand for an object of a callable struct:
 
 - By-copy captures can be prefixed by `const` or `mutable`, and this results in the non-static data member (NSDM)
   (#eelis("expr.prim.lambda.capture", 10)) being declared as `const` or `mutable` respectively, and initialized with the
