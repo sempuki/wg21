@@ -132,7 +132,7 @@
 == Changes from R7: #link("https://wiki.isocpp.org/2026-06_Brno:EvolutionWorkingGroup:P2034R6")[EWG Discussion]
 
 - Changed audience to CWG: EWG forwarded the paper for inclusion in C++29 (2026-06 Brno; polls above). The qualifier
-  spellings are unchanged -- EWG reached no consensus to allow or substitute `[=mutable]`, `[&const]`, or `[=const]`.
+  spellings are unchanged; EWG reached no consensus to allow or substitute `[=mutable]`, `[&const]`, or `[=const]`.
 - Completed the proposed wording, drafting the previously deferred parts: the qualified capture-defaults, the
   logical-`const` specification of `[const&]`, and the non-implicit capture of `*this`. Unified the qualified by-copy
   member type with `auto` deduction, and added a "Wording Design" section as a guide to the normative changes.
@@ -319,10 +319,10 @@ on the call operator.
 `mutable` (#eelis("func.wrap.move.ctor")).
 
 A type is #link("https://isocpp.org/wiki/faq/const-correctness#mutable-data-members")["logically const"] when some of
-its members -- a cache, a mutex, an accumulator -- can be mutated without changing the object's observable state; such
+its members (a cache, a mutex, an accumulator) can be mutated without changing the object's observable state; such
 members are declared `mutable` so that a `const` object can still update them.
 
-These standard types -- and any other const-correct callable wrapper -- cannot hold a logically const lambda today,
+These standard types, and any other const-correct callable wrapper, cannot hold a logically const lambda today,
 because a lambda has no way to declare a `mutable` member:
 
 ```cpp
@@ -458,7 +458,7 @@ The proposal lets programmers apply `const` to lambda captures precisely, where 
 A direct spelling improves the safety and security of such code, especially for programmers who know `const` but not
 the wrapper idioms. Avoiding wrappers also keeps captures short and easier to read.
 
-The reverse case -- most captures modifiable, one `const` -- benefits the same way. Today the choices are to leave the
+The reverse case (most captures modifiable, one `const`) benefits the same way. Today the choices are to leave the
 would-be `const` capture modifiable, which is less safe, or to use `std::cref`, which gives up ownership (a lifetime
 risk) and takes a more verbose spelling.
 
@@ -533,13 +533,13 @@ risk) and takes a more verbose spelling.
 
 = Subsequent Motivation: Symmetry and Simplicity
 
-Our initial motivation needs only a handful of `const`/`mutable` combinations -- but in subsequent meetings EWG
+Our initial motivation needs only a handful of `const`/`mutable` combinations. In subsequent meetings, however, EWG
 expressed interest in symmetry and simplicity for their own sake, and asked the authors to investigate the design
 space.
 
 A recurring view in those discussions is that lambda syntax should be orthogonal to the other ways of declaring
-callable types, not a special case with its own rules. The authors agree, and have investigated every combination of
-`const` and `mutable` on captures and on the call operator.
+callable types. The authors agree, and have investigated every combination of `const` and `mutable` on captures and on
+the call operator.
 
 = Design
 
@@ -549,7 +549,7 @@ obviously strong use case of its own.
 == Summary
 
 `const` and `mutable` extend cleanly to lambda captures. The design is easy to implement, follows the language's
-direction, and matches the common model of a lambda -- shorthand for an object of a callable struct:
+direction, and matches the common model of a lambda as shorthand for an object of a callable struct:
 
 - By-copy captures can be prefixed by `const` or `mutable`, and this results in the non-static data member (NSDM)
   (#eelis("expr.prim.lambda.capture", 10)) being declared as `const` or `mutable` respectively, and initialized with the
@@ -565,11 +565,10 @@ direction, and matches the common model of a lambda -- shorthand for an object o
 A lambda's function call operator is already `const` (unless the lambda is declared `mutable` (#eelis(
   "expr.prim.lambda.closure",
   7,
-))), but today this default cannot be spelled -- we propose allowing it to be stated explicitly.
+))), but today this default cannot be spelled. We propose allowing it to be stated explicitly.
 
-This introduces _no new behavior_ -- it is the existing default made explicit -- but it is self-documenting and
-completes the symmetry with `mutable`: both qualifiers on the call operator can be written, just as both can now qualify
-a capture.
+This introduces no new behavior; it makes the existing default explicit. It is self-documenting and completes the
+symmetry with `mutable`: both qualifiers on the call operator can be written, just as both can now qualify a capture.
 
 === Syntax
 
@@ -728,9 +727,9 @@ Second, a reference capture need not produce a member at all: the standard leave
 (#eelis("expr.prim.lambda.capture", 12)), and only by-copy captures are rewritten into member accesses (#eelis(
   "expr.prim.lambda.capture",
   11,
-)) -- so there is nothing for `const` to attach to.
+)), so there is nothing for `const` to attach to.
 
-Capturing by `const` reference is nonetheless useful -- read-only access to an object too large to copy -- but today it
+Capturing by `const` reference is nonetheless useful for read-only access to an object too large to copy, but today it
 takes `std::cref` or `std::as_const`, neither as concise nor as discoverable as `const&`.
 
 ```cpp
@@ -741,7 +740,7 @@ auto b = [const& x] { return x.size(); };                 // proposed
 We therefore depart from analogy with struct members briefly, and define the meaning of `[const& x]` directly: within
 the body, `x` is a `const` lvalue reference, and any nested lambda that re-captures it observes that `const` (see
 @sec-recaptures[Section]). The usual reference-lifetime caveats apply (@sec-reference-lifetime[Section]). The call
-operator's `const` is shallow on references, so it never reaches the referent -- which is also why `[mutable&]` would
+operator's `const` is shallow on references, so it never reaches the referent, which is also why `[mutable&]` would
 add nothing (@sec-mutable-byref[Section]).
 
 === Syntax
@@ -759,8 +758,8 @@ add nothing (@sec-mutable-byref[Section]).
 
 Unlike the by-copy forms, a `const&` capture of a non-`const` object is never redundant. On a `const` lambda
 ```cpp [x]``` already stops the body from modifying `x`, so ```cpp [const x]``` adds nothing to what the body may do.
-(It is not a no-op: the `const` lambda leaves the member itself non-`const`, so the two spellings still differ
-in the member's type and in the closure's -- @sec-const-bycopy[Section], @sec-const-consequences[Section].) A `const`
+(It is not a no-op: the `const` lambda leaves the member itself non-`const`, so the two spellings still differ in the
+member's type and in the closure's; see @sec-const-bycopy[Section] and @sec-const-consequences[Section].) A `const`
 lambda does nothing at all for ```cpp [&x]```, because the call operator's `const` does not reach the referent, so `x`
 stays modifiable. `[const& x]` is the only way to ask for a `const` view, and it asks for the same thing on either kind
 of lambda. The cells below give the meaning of `x` in the body rather than a desugared `struct`, since a reference
@@ -777,8 +776,8 @@ capture need not declare a member to show.
 )
 
 The table assumes a non-`const` `x`, which is where the two forms differ. If `x` is itself `const`, ```cpp [&x]```
-already binds a reference to `const` and ```cpp [const& x]``` means the same thing -- the redundancy then comes from
-the object, not from the capture.
+already binds a reference to `const` and ```cpp [const& x]``` means the same thing; the capture is then redundant
+because the object is already `const`.
 
 == Capture Defaults
 
@@ -797,7 +796,7 @@ with an explicit `=`:
 )
 
 `[const =]` captures every implicitly-captured entity by `const` copy, `[mutable =]` by `mutable` copy, and `[const&]`
-by `const` reference. `[mutable&]` is ill-formed -- the grammar admits no such _capture-default_ -- since `mutable`
+by `const` reference. `[mutable&]` is ill-formed: the grammar admits no such _capture-default_, since `mutable`
 references do not exist (#eelis("dcl.stc", 8)).
 
 The current grammar admits only `&` and `=` as a _capture-default_ (#eelis("expr.prim.lambda.capture")). We extend it:
@@ -831,7 +830,7 @@ struct X {
 
 A qualified capture-default applies its qualifier only to the entities it captures implicitly; an explicitly-listed
 `this` or `*this` is captured by its own rules and is unaffected by the default's qualifier. Combined with
-@sec-this[Section] -- where `this` and `*this` may not themselves be qualified -- this settles every combination: an
+@sec-this[Section], where `this` and `*this` may not themselves be qualified, this settles every combination: an
 explicitly-listed `this` or `*this` is captured as it is today whatever the default says, and a _qualified_ `this` or
 `*this` is ill-formed wherever it appears.
 
@@ -856,7 +855,7 @@ the qualified defaults.
 
 The default governs everything captured _implicitly_; an explicit capture in the same list overrides it for one named
 entity and carries its own qualifier; and the single thing you cannot write is an explicit capture that does _exactly_
-what the default already does. Under each default the one redundant -- and therefore ill-formed -- form is:
+what the default already does. Under each default the one redundant (and therefore ill-formed) form is:
 
 #table(
   columns: (auto, 1fr),
@@ -870,8 +869,8 @@ what the default already does. Under each default the one redundant -- and there
 )
 
 Pairing each of the five capture-defaults with the five ways to write a single named capture (`x`, `mutable x`,
-`const x`, `&x`, `const& x`) gives twenty-five combinations: the five above are redundant, and the other twenty compose
--- an explicit capture overrides the default for its own entity, carrying its own qualifier. A few:
+`const x`, `&x`, `const& x`) gives twenty-five combinations: the five above are redundant, and the other twenty
+compose, with an explicit capture overriding the default for its own entity and carrying its own qualifier. A few:
 
 #table(
   columns: (auto, 1fr),
@@ -885,23 +884,22 @@ Pairing each of the five capture-defaults with the five ways to write a single n
   [```cpp ...```], [...],
 )
 
-So a default carries the common case while one entity is named as the exception -- the case raised in
-@sec-initial-motivation[Section] (most captures modifiable, one `const`; or the reverse) -- without spelling out every
-capture by hand.
+So a default carries the common case while one entity is named as the exception, without spelling out every capture by
+hand. This is the case raised in @sec-initial-motivation[Section]: most captures modifiable, one `const`, or the
+reverse.
 
 == Captures of `this` <sec-this>
 
-A capture may name either `this` or `*this`. Both denote the same entity -- the object `*this`
-(#eelis("expr.prim.lambda.capture", 4)) -- but they capture it differently. `[this]` captures it _by reference_: a
+A capture may name either `this` or `*this`. Both denote the same entity, the object `*this`
+(#eelis("expr.prim.lambda.capture", 4)), but they capture it differently. `[this]` captures it _by reference_: a
 capture of that form is not a capture by copy (#eelis("expr.prim.lambda.capture", 10, 2)), and the standard leaves
 unspecified whether a member is declared for it at all (#eelis("expr.prim.lambda.capture", 12)). `[*this]` captures it
 _by copy_, declaring an unnamed non-static data member of the enclosing class type
-(#eelis("expr.prim.lambda.capture", 10)). We recommend disallowing `const` and `mutable` on all four spellings --
-`[const this]`, `[mutable this]`, `[const *this]`, and `[mutable *this]` -- until experience is accrued.
+(#eelis("expr.prim.lambda.capture", 10)). We recommend disallowing `const` and `mutable` on all four spellings
+(`[const this]`, `[mutable this]`, `[const *this]`, and `[mutable *this]`) until experience is accrued.
 
-`[mutable this]` aside, these are deferrals, not claims that the forms could have no meaning: the qualifier would mean
-what it means everywhere else in this paper, and the obstacle is only the wording we would have to write for a capture
-with no demonstrated demand.
+`[mutable this]` aside, these are deferrals: the qualifier would mean what it means everywhere else in this paper, and
+the obstacle is only the wording we would have to write for a capture with no demonstrated demand.
 
 #table(
   columns: (auto, 1fr, 1fr),
@@ -912,16 +910,16 @@ with no demonstrated demand.
   [```cpp [mutable this]```],
   [nothing: `[this]` captures by reference, and the call operator's `const` never reaches the referent, so the
     enclosing object is already modifiable],
-  [the same reason `[mutable& x]` is not proposed (@sec-mutable-byref[Section]) -- there is nothing for it to do, and
+  [the same reason `[mutable& x]` is not proposed (@sec-mutable-byref[Section]): there is nothing for it to do, and
     `mutable` references do not exist (#eelis("dcl.stc", 8))],
 
   [```cpp [const this]```],
-  [a `const` view of the enclosing object -- what `[const& x]` gives for a named `x`],
+  [a `const` view of the enclosing object, as `[const& x]` gives for a named `x`],
   [it would need a direct definition of the kind `[const& x]` needs (@sec-const-byref[Section]), but for an entity the
     body reaches implicitly rather than by name],
 
   [```cpp [const *this]```, ```cpp [mutable *this]```],
-  [a `const` or `mutable` copy of the object -- what `[const x]` and `[mutable x]` give for a named `x`],
+  [a `const` or `mutable` copy of the object, as `[const x]` and `[mutable x]` give for a named `x`],
   [that copy is an unnamed member, reached by rewriting each odr-use of `*this`
     (#eelis("expr.prim.lambda.capture", 11)) rather than through an _id-expression_, so the const-propagation wording
     this paper threads through #eelis("expr.prim.id.unqual", 4) and the nested re-capture rule
@@ -953,9 +951,9 @@ by-copy capture exactly as it is today; it settles only which of the two rules a
 A _simple-capture_ keeps the captured entity's type, retaining its cv-qualifiers: the member type is the referenced type
 if the entity is a reference to an object, an lvalue reference to the referenced function type if it is a reference to a
 function, and the entity's type otherwise (#eelis("expr.prim.lambda.capture", 10)). Capturing a `const T` therefore
-yields a `const` member. This is deliberate: @CWG756 -- named for the question it raised, not for its resolution --
-asked whether a closure member should drop the captured entity's cv-qualifiers, and @N2927 resolved it the other way,
-giving such a member "the type of the corresponding captured entity". Capture is therefore cv-faithful, so that
+yields a `const` member. This is deliberate. @CWG756 (whose title states the question it raised) asked whether a
+closure member should drop the captured entity's cv-qualifiers, and @N2927 resolved that it should not, giving such a
+member "the type of the corresponding captured entity". Capture is therefore cv-faithful, so that
 `decltype`, overload resolution, and template argument deduction inside the lambda agree with the enclosing scope.
 
 An _init-capture_ instead behaves "as if it declares ... a variable of the form `auto` _init-capture_ `;`" (#eelis(
@@ -1006,7 +1004,7 @@ That leaves two candidate rules for a qualified simple-capture:
   [```cpp T```], [```cpp [mutable x]```], [```cpp mutable T```], [```cpp mutable T```],
   [```cpp T```], [```cpp [const x]```], [```cpp const T```], [```cpp const T```],
   [```cpp const T```], [```cpp [const x]```], [```cpp const T```], [```cpp const T```],
-  [```cpp const T```], [```cpp [mutable x]```], [`mutable const T` -- ill-formed], [```cpp mutable T```],
+  [```cpp const T```], [```cpp [mutable x]```], [`mutable const T` (ill-formed)], [```cpp mutable T```],
   [```cpp volatile T```], [```cpp [mutable x]```], [```cpp mutable volatile T```], [```cpp mutable T```],
 )
 
@@ -1020,8 +1018,8 @@ That leaves two candidate rules for a qualified simple-capture:
 
 === The Adopted Rule
 
-We adopt (2): A programmer who writes `mutable` or `const` on a capture is requesting a customization, so faithfully
-preserving the source cv-qualifiers -- the simple-capture default -- is neither expected nor useful; deducing as an
+We adopt (2). A programmer who writes `mutable` or `const` on a capture is requesting a customization, so faithfully
+preserving the source cv-qualifiers (the simple-capture default) is neither expected nor useful. Deducing as an
 init-capture does makes a qualified simple-capture and the corresponding init-capture produce the same member, and
 removes the `mutable const T` hazard.
 
@@ -1030,14 +1028,13 @@ For an entity of type `T`:
 - `mutable` produces a `mutable` member of type `std::remove_cvref_t<T>`, and
 - `const` produces a member of type `const std::remove_cvref_t<T>`.
 
-Stripping all top-level cv-qualifiers -- not just `const` -- is exactly what `auto` deduction does, so a qualified
+Stripping all top-level cv-qualifiers, `volatile` included, is exactly what `auto` deduction does, so a qualified
 simple-capture and the corresponding init-capture deduce the same member type even for a `volatile` entity. The one
 exception is a reference to a function, which the type rule settles before the qualified branches apply: the
 simple-capture keeps a reference, while the init-capture decays to a pointer.
 
-The qualifier is a genuine member qualifier, not an "as-if" treatment confined to the call operator: the closure is
-exactly the struct a programmer would hand-write, so `decltype`, overload resolution, and reflection (@P2996) all
-observe the real member type.
+The qualifier is a genuine member qualifier: the closure is exactly the struct a programmer would hand-write, so
+`decltype`, overload resolution, and reflection (@P2996) all observe the real member type.
 
 == Recaptures <sec-recaptures>
 
@@ -1050,8 +1047,8 @@ auto outer = [const& x] {          // x is a const view of the original
 };
 ```
 
-`inner` copies `x`, and because it copies from a `const` view the copy is itself `const` -- the same long-standing rule
-(@CWG756, @N2927) that makes `[x]` of a `const` variable produce a `const` member. The consequence shows when the
+`inner` copies `x`, and because it copies from a `const` view the copy is itself `const`, by the same long-standing
+rule (@CWG756, @N2927) that makes `[x]` of a `const` variable produce a `const` member. The consequence shows when the
 inner lambda is `mutable`:
 
 ```cpp
@@ -1062,10 +1059,10 @@ auto outer = [const& x] {
 
 Letting `inner` mutate its own copy would contradict the `const` view `[const& x]` promised one line above. The
 original object is untouched either way, but a modifiable copy appearing from a `const` capture is the kind of surprise
-`const` exists to prevent. The `const` carries through any depth of nesting, including through
-intervening plain-reference captures: a `[const& x]` several levels out still yields a `const` copy at the bottom.
+`const` exists to prevent. The `const` carries through any depth of nesting, including through intervening
+plain-reference captures: a `[const& x]` several levels out still yields a `const` copy at the bottom.
 
-None of the following are special cases; each follows from two facts -- a `const`-reference view is `const`, and a copy
+None of the following are special cases; each follows from two facts: a `const`-reference view is `const`, and a copy
 of a `const` view is `const`. The first column is the nesting, read outermost-to-innermost; the second is what the
 innermost `x` is.
 
@@ -1081,17 +1078,17 @@ innermost `x` is.
   [```cpp [&x]{ [x]() mutable { x = 0; } }```], [OK], [no `const&` anywhere; an ordinary modifiable copy],
 )
 
-`[const& x]` behaves the same on a `const` or a `mutable` lambda: the `const` belongs to the view of the object, not to
-a member supplied by the call operator. And because there is no by-copy member, there is nothing to move or copy when
-the closure is moved -- subject to the usual reference-lifetime caveat.
+`[const& x]` behaves the same on a `const` or a `mutable` lambda, because the `const` belongs to the view of the
+object rather than to a member supplied by the call operator. And because there is no by-copy member, there is nothing
+to move or copy when the closure is moved, subject to the usual reference-lifetime caveat.
 
 == Reference Captures of Temporaries <sec-reference-lifetime>
 
 `[const& x = init]` can bind to a temporary. The language already permits this, but it is newly easy to write: today it
-takes an initializer that is already `const` -- a function returning `const T`, say -- since `auto&` will not bind to a
+takes an initializer that is already `const` (say, a function returning `const T`), since `auto&` will not bind to a
 non-`const` prvalue, which is why ```cpp [&x = f()]``` is normally an error. `[const& x = bar()]` works with any
 ordinary `bar()`. This proposal turns an obscure corner into an idiomatic spelling, so the lifetime question deserves
-an answer -- and, as the end of this section shows, a warning.
+an answer, and, as the end of this section shows, a warning.
 
 ```cpp
 const Foo cf();                 // returns a `const` prvalue
@@ -1119,13 +1116,13 @@ temporary therefore lives exactly as long as the closure object whose _init-capt
 
 Three consequences follow, and they settle the questions this form raises:
 
-- *The temporary belongs to one closure object.* It is tied to the closure whose _init-capture_ created it -- not to the
-  closure type, and not to any copy.
+- *The temporary belongs to one closure object.* It is tied to the closure whose _init-capture_ created it; the closure
+  type and any copies get no claim on it.
 - *Copying extends nothing.* A copy binds its own reference directly to the same object. Lifetime extension applies
   where a reference binds to a _temporary_ (#eelis("class.temporary", 6)); binding a further reference to an
   already-bound object is not such a case and does not lengthen anything.
 - *A copy that outlives the original dangles.* The temporary dies with the original closure, leaving any surviving copy
-  referring to a destroyed object -- the ordinary consequence of a reference outliving its referent.
+  referring to a destroyed object, the ordinary consequence of a reference outliving its referent.
 
 The dangerous case is returning such a closure:
 
@@ -1141,17 +1138,17 @@ g();                                      // dangling
 By guaranteed copy elision the closure object is the caller's, but the temporary was materialized in the callee's frame
 and is destroyed when `make` returns. This is diagnosable, and is diagnosed: for the spelling reachable today, Clang
 reports _"returning address of local temporary object"_ with the note _"captured by reference via initialization of
-lambda capture"_. GCC does not accept that spelling at all -- it rejects ```cpp [&x = g()]``` for a `const`-returning
-`g`, though it accepts the equivalent ```cpp auto& x = g();``` -- so the existing form is barely exercised. The same
+lambda capture"_. GCC does not accept that spelling at all (it rejects ```cpp [&x = g()]``` for a `const`-returning
+`g`, though it accepts the equivalent ```cpp auto& x = g();```), so the existing form is barely exercised. The same
 happens without lambdas, though: a returned aggregate with a reference member bound to a temporary loses that temporary
-at the return, on both GCC and Clang, so this is how reference lifetime behaves across a return generally, not something
-particular to closures.
+at the return, on both GCC and Clang. This is how reference lifetime behaves across a return generally, and closures
+merely inherit it.
 
 We would welcome CWG's view on how the wording is meant to be read here. Taken literally, it appears to say something
 else: if the returned closure object's lifetime is the caller's, then so is the _init-capture_ variable's (#eelis(
   "expr.prim.lambda.capture",
   6,
-)), and the temporary bound to it persists for the lifetime of that reference (#eelis("class.temporary", 6)) -- which
+)), and the temporary bound to it persists for the lifetime of that reference (#eelis("class.temporary", 6)), which
 would require the temporary to outlive the frame it was materialized in. We may be reading it wrongly. If we are not,
 it seems better handled as a core issue than as part of this paper. Either way the behavior is reachable in C++26 and
 is not introduced by this proposal; we raise it because this proposal makes it much easier to encounter.
@@ -1159,7 +1156,7 @@ is not introduced by this proposal; we raise it because this proposal makes it m
 == Interaction with `consteval` and `constexpr` Lambdas
 
 A `mutable` capture raises no new question for a `constexpr` or `consteval` lambda. Mutating and reading local state
-during constant evaluation has been allowed since C++14 (@N3652), and a `mutable` data member is part of that -- a
+during constant evaluation has been allowed since C++14 (@N3652), and a `mutable` data member is part of that: a
 function object with a `mutable` member can be evaluated at compile time today:
 
 ```cpp
@@ -1187,9 +1184,9 @@ static_assert(g() == 3);     // OK since C++17
 ```
 
 Writing `[mutable n]` declares the same kind of member as the `mutable` lambda above and behaves the same way. The one
-case that does not work -- reading a `mutable` member of an object that already existed before the evaluation began --
-is not specific to lambdas: it fails for a hand-written `mutable` member in exactly the same way. So a `mutable` capture
-needs no rule of its own, and this paper adds none.
+case that does not work, reading a `mutable` member of an object that already existed before the evaluation began,
+fails for a hand-written `mutable` member in exactly the same way. So a `mutable` capture needs no rule of its own, and
+this paper adds none.
 
 == Implementation Experience
 
@@ -1212,12 +1209,13 @@ tried on #link("https://godbolt.org/z/9fcoYeMMf")[Compiler Explorer].
 == Consequences of Const Members <sec-const-consequences>
 
 Because a const capture makes the member genuinely `const`, it carries the ordinary consequences of a `const` data
-member -- nothing lambda-specific. A `const` member is copied rather than moved by the defaulted move constructor -- you
-cannot move from a `const` object. The move constructor initializes each member from the corresponding member of an
-xvalue referring to its parameter (#eelis("class.copy.ctor", 15)), so a `const M` member yields a `const M` xvalue,
-which cannot bind to `M(M&&)` (#eelis("class.copy.ctor", 9)); the copy constructor is selected instead.
+member, and nothing lambda-specific. A `const` member is copied rather than moved by the defaulted move constructor,
+because a `const` object cannot be moved from. The move constructor initializes each member from the corresponding
+member of an xvalue referring to its parameter (#eelis("class.copy.ctor", 15)), so a `const M` member yields a
+`const M` xvalue, which cannot bind to `M(M&&)` (#eelis("class.copy.ctor", 9)); the copy constructor is selected
+instead.
 
-The closure's move constructor is therefore `noexcept` only when the member's _copy_ constructor is -- which, for any
+The closure's move constructor is therefore `noexcept` only when the member's _copy_ constructor is, which, for any
 type whose copy allocates, it is not. Containers notice: `std::vector` reallocation uses `move_if_noexcept`, so a
 closure holding a `const` member whose copy can throw (e.g. `std::string`) is copied, not moved, on every growth:
 
@@ -1244,11 +1242,11 @@ consequences follow from the same class rule:
 
 - *Assignment.* A `const` member also deletes copy and move assignment (#eelis("class.copy.assign", 7)). This is inert
   while lambdas delete assignment regardless (#eelis("expr.prim.lambda.closure", 17)), but @P3963 (approved by EWG)
-  restores it for ordinary captures; a const capture then correctly opts back out -- exactly as a `const` member of a
+  restores it for ordinary captures; a const capture then correctly opts back out, exactly as a `const` member of a
   hand-written callable would.
 - *Move-only captures.* For a move-only captured type the `const` member cannot be copied (the type is move-only) and
-  cannot be moved (a `const` object can only be copied from, never moved) -- so the closure is non-movable: a diagnosed
-  error at the use site, not a silent pessimization.
+  cannot be moved (a `const` object can only be copied from), so the closure is non-movable. This is a diagnosed error
+  at the use site rather than a silent pessimization.
 
 For instance, const-capturing a `unique_ptr` yields a closure that cannot be stored in a `move_only_function`:
 
@@ -1260,23 +1258,23 @@ move_only_function<int()> f =
   //        so the closure is non-movable and move_only_function cannot store it.
 ```
 
-These are properties of a faithful model (@thesis[Section]), not defects to engineer around; the alternative -- a
-non-`const` member behind a `const` spelling -- would trade a teachable rule for a hidden one.
+These are the ordinary properties of a `const` member, faithfully modeled (@thesis[Section]). The alternative, a
+non-`const` member behind a `const` spelling, would trade a teachable rule for a hidden one.
 
 == Teaching Const Capture
 
 `const` capture behaves as a `const` member because it is one; the rules for using it well are the rules for any `const`
 member.
 
-- Use `const` capture for owned state that is genuinely immutable, not as a default annotation. Its cost is the cost
-  of a `const` member, no more and no less.
+- Use `const` capture for owned state that is genuinely immutable. Its cost is the cost of a `const` member, no more
+  and no less.
 - A closure headed for a reallocating container, or one that must be assignable, pays for a `const` capture of an
   expensive-to-copy type on every move; if that cost matters, do not `const`-capture that member.
-- Never `const`-capture a move-only type you must move out of -- the closure becomes non-movable.
+- Never `const`-capture a move-only type you must move out of; the closure becomes non-movable.
 - To read an object without owning a copy, capture by `const` reference rather than by `const` value; there is then no
   member to move, subject to the usual reference-lifetime caveat.
-- "`const` within the body but a movable member" is a _different_ feature -- logical versus physical `const` -- and is
-  not what `[const x]` means; spelling it `const` would give the keyword two meanings.
+- "`const` within the body but a movable member" is a different feature (logical rather than physical `const`), and
+  `[const x]` does not mean it; spelling it `const` would give the keyword two meanings.
 
 == East v. West Const
 
@@ -1285,9 +1283,9 @@ identifier; `[const x]` is consistent with both.
 
 == Pointer to Const v. Const Pointer
 
-Current lambda behavior mandates bitwise `const` -- a `const` pointer, not a pointer to `const`. The captured member has
-the captured entity's type (#eelis("expr.prim.lambda.capture", 10)), so qualifying a captured pointer applies `const` to
-the pointer, not its pointee. This proposal continues that rule and does not modify it.
+Current lambda behavior mandates bitwise `const`: qualifying a captured pointer yields a `const` pointer, and the
+pointee stays writable. The captured member has the captured entity's type (#eelis("expr.prim.lambda.capture", 10)), so
+the `const` applies to the pointer. This proposal continues that rule and does not modify it.
 
 ```cpp
 auto c = [const x = ptr]() {
@@ -1346,7 +1344,7 @@ qualifications the desugared class already supports.
   - @P3963 -- copy and move assignment for captured lambdas (EWG-approved, pending CWG)
 
 5. *It is the orthogonal design.*
-  - `const`, `mutable`, and reference qualifiers mean on a capture exactly what they mean on a member -- there is no
+  - `const`, `mutable`, and reference qualifiers mean on a capture exactly what they mean on a member. There is no
     separate set of lambda rules to learn; the function object the lambda lowers to already defines them
 
 You can run this code today:
@@ -1384,8 +1382,8 @@ int main() {
 
 (#link("https://godbolt.org/z/K8xYP47sP")[Compiler Explorer]: x86-64 clang, `-freflection-latest -std=c++26`)
 
-We are not proposing a new model of lambdas; we are completing one the language has converged on since C++11 -- letting
-the programmer spell the `const` and `mutable` members the desugared function object could always have held.
+This proposal completes the model the language has converged on since C++11: it lets the programmer spell the `const`
+and `mutable` members the desugared function object could always have held.
 
 == Remaining Gaps <sec-remaining-gaps>
 
@@ -1404,36 +1402,36 @@ Beyond those structural freedoms, a closure is not interchangeable with a hand-w
 ways.
 
 1. *Special members, with captures.* A closure with captures has no default constructor and a deleted copy assignment
-  operator (#eelis("expr.prim.lambda.closure", 17)); a hand-written struct would have both defaulted. These are gaps the
-  language is closing on the same trajectory as everything else -- captureless lambdas gained them in C++20 (@P0624),
-  and @P3963 would restore assignment for captured lambdas -- not properties this paper changes.
+  operator (#eelis("expr.prim.lambda.closure", 17)); a hand-written struct would have both defaulted. This paper leaves
+  these properties alone, and the language is already closing them on the same trajectory as everything else:
+  captureless lambdas gained them in C++20 (@P0624), and @P3963 would restore assignment for captured lambdas.
 2. *Anonymity.* A closure type is unique and unnamable: it cannot be forward-declared, and a programmer cannot add data
   members, member functions, base classes, or constructors to it. This is inherent to a lambda being an _expression_
   rather than a class definition; the sugar generates a fixed shape.
 3. *The conversion a struct lacks.* A captureless closure converts to a function pointer (#eelis(
     "expr.prim.lambda.closure",
     11,
-  )) -- a divergence in the opposite direction, an affordance no plain struct has.
+  )), a divergence in the opposite direction: an affordance no plain struct has.
 
-The thesis is that the closure _is_ a class with a function object's member semantics, and that `const` and `mutable` on
-a capture should mean what they mean on a member -- not that a lambda is a way to write an arbitrary class. These
-residual differences are what make a lambda worth having.
+The thesis is that the closure _is_ a class with a function object's member semantics, and that `const` and `mutable`
+on a capture should mean what they mean on a member. A lambda is still not a way to write an arbitrary class; these
+residual differences are what make it worth having.
 
 = Wording Design
 
 The feature is small, and so is most of the wording: in the common case it sets a cv-qualification and a
 storage-class-specifier on members the closure already declares. This section is a guide to how the normative changes
-are organized and why they take the shape they do -- the design of the _wording_, as distinct from the design of the
-feature above. It is written for readers following the proposed wording closely.
+are organized and why they take the shape they do. It covers the design of the _wording_, as distinct from the design
+of the feature above. It is written for readers following the proposed wording closely.
 
 The changes touch five subclauses:
 
-- #eelis("expr.prim.id.unqual") -- the type of a name that resolves to a `const`-reference capture;
-- #eelis("expr.prim.lambda.general") -- the `const` _lambda-specifier_;
-- #eelis("expr.prim.lambda.closure") -- a note that the `const` _lambda-specifier_ has no effect;
-- #eelis("expr.prim.lambda.capture") -- the bulk: grammar, the qualified members, the capture-default rules, and nested
-  re-capture; and
-- #eelis("cpp.predefined") -- the feature-test macro.
+- #eelis("expr.prim.id.unqual"): the type of a name that resolves to a `const`-reference capture;
+- #eelis("expr.prim.lambda.general"): the `const` _lambda-specifier_;
+- #eelis("expr.prim.lambda.closure"): a note that the `const` _lambda-specifier_ has no effect;
+- #eelis("expr.prim.lambda.capture"): the bulk, covering grammar, the qualified members, the capture-default rules, and
+  nested re-capture; and
+- #eelis("cpp.predefined"): the feature-test macro.
 
 == The by-copy member carries most of the feature
 
@@ -1445,11 +1443,11 @@ The member type is stated as prose rather than as `std::remove_cvref_t<T>`, beca
 library. The two qualified cases reduce to a single helper: from the existing cv-faithful captured type _U_, form _V_ by
 removing top-level cv-qualifiers; a mutable capture yields _V_ (declared `mutable`), a const capture yields
 `const`-qualified _V_. _V_ is exactly what `auto` deduction produces, which is why a qualified simple-capture and the
-corresponding init-capture agree -- except for a reference to a function, which the first sentence of the type rule
+corresponding init-capture agree, except for a reference to a function, which the first sentence of the type rule
 settles before _V_ is reached.
 
-Two terms -- _captured mutably_ and _captured by const copy_ -- are defined there rather than inlined, because two
-later places refer to them: the member's `mutable` storage class and the nested re-capture rule (#eelis(
+Two terms, _captured mutably_ and _captured by const copy_, are defined there rather than inlined, because two later
+places refer to them: the member's `mutable` storage class and the nested re-capture rule (#eelis(
   "expr.prim.lambda.capture",
   14,
 )). Each term is defined over both the explicit capture (the _capture_ begins with the keyword) and the implicit
@@ -1462,8 +1460,8 @@ the qualified branches; the `mutable` storage class excludes it explicitly, and 
 
 == The `const` specifier and the specifier constraints
 
-The `const` _lambda-specifier_ introduces no behavior -- the call operator is already `const` unless `mutable` or
-`static` is present -- so the closure-type wording gains only a note saying so (#eelis("expr.prim.lambda.closure", 7)),
+The `const` _lambda-specifier_ introduces no behavior (the call operator is already `const` unless `mutable` or
+`static` is present), so the closure-type wording gains only a note saying so (#eelis("expr.prim.lambda.closure", 7)),
 and the specifier constraints in #eelis("expr.prim.lambda.general", 4) gain only the entry forbidding `const` alongside
 an explicit object parameter and the mutual exclusion of `const`, `mutable`, and `static`.
 
@@ -1474,13 +1472,13 @@ attach to. The `const` is therefore a property of the name's _type_, and the one
 of a captured name is #eelis("expr.prim.id.unqual", 4). We add a paragraph there: when a name resolves to an entity
 captured by `const` reference anywhere in the enclosing chain of lambdas, its type is `const`-qualified.
 
-We add a separate paragraph rather than widen the existing by-copy rule. Widening was tried -- by changing that rule's
-trigger from "captured by copy" to "captured" -- and it breaks: the rule names "the member that the capture would
+We add a separate paragraph rather than widen the existing by-copy rule. Widening was tried, by changing that rule's
+trigger from "captured by copy" to "captured", and it breaks: the rule names "the member that the capture would
 create" in the innermost capturing lambda, and a reference capture creates no member, so the rule contradicts itself
 whenever that innermost lambda captures by reference. Keeping the by-copy rule untouched and adding a parallel rule for
 the reference case avoids the contradiction.
 
-Re-capture is where this needs care. The behavior -- a copy of a `const` view is itself `const`, to any nesting depth --
+Re-capture is where this needs care. The behavior (a copy of a `const` view is itself `const`, to any nesting depth)
 is described in @sec-recaptures[Section]; the wording achieves it in the re-capture rule (#eelis(
   "expr.prim.lambda.capture",
   14,
@@ -1494,9 +1492,9 @@ most worth a second look, and CWG may prefer to restate it as a single inductive
 
 The existing #eelis("expr.prim.lambda.capture", 2) forbids an explicit capture that matches the _capture-default_,
 phrased two ways: a prohibition for `&`, a whitelist for `=`. With qualifiers, the clean generalization is a single
-prohibition -- an explicit _simple-capture_ may not capture an entity in exactly the way the default already would. This
-reproduces today's diagnostics, treats all five defaults uniformly, and leaves combinations like `[mutable =, const x]`
-well-formed -- which a whitelist would not.
+prohibition, that an explicit _simple-capture_ may not capture an entity in exactly the way the default already would.
+This reproduces today's diagnostics, treats all five defaults uniformly, and leaves combinations like
+`[mutable =, const x]` well-formed, which a whitelist would not.
 
 The qualified defaults also do not implicitly capture `*this` (#eelis("expr.prim.lambda.capture", 7)), continuing the
 direction of the C++20 deprecation; the unqualified `=` and `&` are unchanged.
@@ -1511,8 +1509,8 @@ inert, changes no rule beyond the note added above.
 A `mutable` capture on a `constexpr` or `consteval` lambda likewise needs no constraint of its own; the existing rules
 in #eelis("expr.const") already settle it. The lvalue-to-rvalue conversion that reads a member is permitted, among other
 cases, on "a non-volatile glvalue of literal type that refers to a non-volatile object whose lifetime began within the
-evaluation of _E_" (#eelis("expr.const.core", 2, 10, 3)) -- an allowance not conditioned on the `mutable` qualifier --
-so a `mutable` member is readable whenever the closure was constructed within the evaluation, the usual case for a
+evaluation of _E_" (#eelis("expr.const.core", 2, 10, 3)), an allowance not conditioned on the `mutable` qualifier, so
+a `mutable` member is readable whenever the closure was constructed within the evaluation, the usual case for a
 closure built and called in one constant expression. A `mutable` subobject is excluded only from the _other_ allowance
 (#eelis("expr.const.core", 2, 10, 2)), for a glvalue referring to an object "usable in constant expressions": the
 definition of _potentially usable in constant expressions_ admits only a "non-mutable subobject"
