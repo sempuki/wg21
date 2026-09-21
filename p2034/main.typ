@@ -563,8 +563,8 @@ callable types, not a special case with its own rules. The authors agree, and ha
 
 = Design
 
-Some combinations in this design have no obvious use of their own; the paper includes them for symmetry and conceptual
-simplicity.
+All combinations are included for symmetry and conceptual simplicity, even where a combination does not yet have an
+obviously strong use case of its own.
 
 == Summary
 
