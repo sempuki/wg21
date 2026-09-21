@@ -909,43 +909,59 @@ capture by hand.
 
 == Captures of `this` <sec-this>
 
-A capture may name either `this` or `*this`, and the two capture differently. `[this]` captures the enclosing object _by
-reference_: the closure conceptually holds the pointer, though the standard leaves it unspecified whether a member is
-actually declared for it (#eelis("expr.prim.lambda.capture", 12)). `[*this]` captures the object _by copy_, declaring an
-unnamed non-static data member of the enclosing class type (#eelis("expr.prim.lambda.capture", 10)). We recommend
-disallowing `const` and `mutable` on all four spellings -- `[const this]`, `[mutable this]`, `[const *this]`, and
-`[mutable *this]` -- until experience is accrued. The obstacle differs between the two, and neither depends on which
-qualifier is written:
+A capture may name either `this` or `*this`. Both denote the same entity -- the object `*this`
+(#eelis("expr.prim.lambda.capture", 4)) -- but they capture it differently. `[this]` captures it _by reference_: a
+capture of that form is not a capture by copy (#eelis("expr.prim.lambda.capture", 10, 2)), and the standard leaves
+unspecified whether a member is declared for it at all (#eelis("expr.prim.lambda.capture", 12)). `[*this]` captures it
+_by copy_, declaring an unnamed non-static data member of the enclosing class type
+(#eelis("expr.prim.lambda.capture", 10)). We recommend disallowing `const` and `mutable` on all four spellings --
+`[const this]`, `[mutable this]`, `[const *this]`, and `[mutable *this]` -- until experience is accrued.
+
+With one exception these are deferrals, not claims that the forms could not be given a meaning: the qualifier would
+mean what it means everywhere else in this paper, and what stands in the way is wording we would have to write for a
+capture with no demonstrated demand.
 
 #table(
   columns: (auto, 1fr, 1fr),
   align: horizon,
   fill: (x, y) => if x == 0 or y == 0 { quote-gray },
-  [], [unqualified], [`const` or `mutable`],
+  [], [what the qualifier would mean], [why not now],
 
-  [```cpp [this]```],
-  [captures the enclosing object by reference],
-  [ill-formed: no by-copy member for the qualifier to attach to],
+  [```cpp [mutable this]```],
+  [nothing: `[this]` captures by reference, and the call operator's `const` never reaches the referent, so the
+    enclosing object is already modifiable],
+  [the same reason `[mutable& x]` is not proposed (@sec-mutable-byref[Section]) -- there is nothing for it to do, and
+    `mutable` references do not exist (#eelis("dcl.stc", 8))],
 
-  [```cpp [*this]```],
-  [captures the object by copy, as an unnamed member],
-  [ill-formed: that member is unnamed, so the const-propagation wording does not reach it],
+  [```cpp [const this]```],
+  [a `const` view of the enclosing object -- what `[const& x]` gives for a named `x`],
+  [it would need a direct definition of the kind `[const& x]` needs (@sec-const-byref[Section]), but for an entity the
+    body reaches implicitly rather than by name],
+
+  [```cpp [const *this]```, ```cpp [mutable *this]```],
+  [a `const` or `mutable` copy of the object -- what `[const x]` and `[mutable x]` give for a named `x`],
+  [that copy is an unnamed member, reached by rewriting each odr-use of `*this`
+    (#eelis("expr.prim.lambda.capture", 11)) rather than through an _id-expression_, so the const-propagation wording
+    this paper threads through #eelis("expr.prim.id.unqual", 4) and the nested re-capture rule
+    (#eelis("expr.prim.lambda.capture", 14)) would not reach it without a special case. `mutable` would need no such
+    wording, but we would rather defer both than admit one qualifier on `*this` and not the other],
 )
 
-For `[const this]` and `[mutable this]`, recall that capture is bitwise `const`: a qualifier names the captured pointer,
-not its pointee. But `this` is a prvalue (#eelis("expr.prim.this", 4)) captured by reference, so there is no by-copy
-member for the qualifier to attach to; and the captured pointer can never be reassigned, so the qualifier is either
-meaningless (under the bitwise rule) or inconsistent with it (if read as qualifying `*this`).
+The deferrals cost nothing that cannot be said another way today, which is the argument for waiting rather than for
+prohibiting: both requests already have a spelling under this proposal.
 
-For `[const *this]` and `[mutable *this]` the obstacle is mechanical rather than semantic. Because `*this` is captured
-by copy, the qualifier _would_ carry the same meaning it has on any by-copy capture: a `const` or `mutable` copy of the
-object. But that member is unnamed and reached implicitly through `this` -- each odr-use of `*this` is rewritten to
-refer to it (#eelis("expr.prim.lambda.capture", 11)) -- rather than through a named _id-expression_, so the
-const-propagation wording this paper threads through #eelis("expr.prim.id.unqual", 4) and the nested re-capture rule
-(#eelis(
-  "expr.prim.lambda.capture",
-  14,
-)) does not reach it. Rather than special-case that machinery for a capture with no demonstrated demand, we defer it.
+```cpp
+struct X {
+  int x;
+  void f() {
+    auto a = [const& self = *this] { return self.x; };  // a `const` view of the enclosing object
+    auto b = [const self = *this] { return self.x; };   // a `const` copy of it
+    auto c = [const this] { return x; };                // ill-formed: this may not be qualified
+  }
+};
+```
+
+If those _init-captures_ see use, a later paper can add the shorter spellings; nothing here forecloses them.
 
 == Deducing the NSDM Type
 
