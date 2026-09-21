@@ -849,9 +849,22 @@ struct X {
 
 A qualified capture-default applies its qualifier only to the entities it captures implicitly; an explicitly-listed
 `this` or `*this` is captured by its own rules and is unaffected by the default's qualifier. Combined with
-@sec-this[Section] -- where `this` and `*this` may not themselves be qualified -- this fixes every combination:
-`[mutable =, this]`, `[const =, *this]`, `[const&, *this]`, and so on capture `this`/`*this` normally, while
-`[mutable =, const this]` and the like are ill-formed.
+@sec-this[Section] -- where `this` and `*this` may not themselves be qualified -- this fixes every combination: an
+explicitly-listed `this` or `*this` is captured as it is today whatever the default says, and a _qualified_ `this` or
+`*this` is ill-formed wherever it appears.
+
+```cpp
+struct X {
+  int x;
+  void f() {
+    auto a = [mutable =, this] { return x; };   // OK: implicit captures are mutable; this as today
+    auto b = [const =, *this] { return x; };    // OK: implicit captures are const; *this copied as today
+    auto c = [const&, *this] { return x; };     // OK: const-reference views; *this copied as today
+    auto d = [mutable =, const this] { };       // error: this may not be qualified
+    auto e = [const =, mutable *this] { };      // error: *this may not be qualified
+  }
+};
+```
 
 === Redundant Default Captures
 
