@@ -917,9 +917,9 @@ _by copy_, declaring an unnamed non-static data member of the enclosing class ty
 (#eelis("expr.prim.lambda.capture", 10)). We recommend disallowing `const` and `mutable` on all four spellings --
 `[const this]`, `[mutable this]`, `[const *this]`, and `[mutable *this]` -- until experience is accrued.
 
-With one exception these are deferrals, not claims that the forms could not be given a meaning: the qualifier would
-mean what it means everywhere else in this paper, and what stands in the way is wording we would have to write for a
-capture with no demonstrated demand.
+`[mutable this]` aside, these are deferrals rather than claims that the forms could not be given a meaning: the
+qualifier would mean what it means everywhere else in this paper, and what stands in the way is wording we would have
+to write for a capture with no demonstrated demand.
 
 #table(
   columns: (auto, 1fr, 1fr),
@@ -947,8 +947,8 @@ capture with no demonstrated demand.
     wording, but we would rather defer both than admit one qualifier on `*this` and not the other],
 )
 
-The deferrals cost nothing that cannot be said another way today, which is the argument for waiting rather than for
-prohibiting: both requests already have a spelling under this proposal.
+Deferring costs little, which is why we ask for silence now rather than a prohibition on principle: both requests
+already have a spelling under this proposal.
 
 ```cpp
 struct X {
@@ -1069,8 +1069,8 @@ auto outer = [const& x] {          // x is a const view of the original
 ```
 
 `inner` copies `x`, and because it copies from a `const` view the copy is itself `const` -- the same long-standing rule
-(@CWG756, @N2927) that makes `[x]` of a `const` variable produce a `const` member. The consequence shows when the inner lambda
-is `mutable`:
+(@CWG756, @N2927) that makes `[x]` of a `const` variable produce a `const` member. The consequence shows when the
+inner lambda is `mutable`:
 
 ```cpp
 auto outer = [const& x] {
@@ -1211,8 +1211,8 @@ needs no rule of its own, and this paper adds none.
 
 == Implementation Experience
 
-Ville Voutilainen implemented an earlier revision of this proposal in GCC as a proof of concept, with regression
-tests, and reported:
+Ville Voutilainen implemented an earlier revision of this proposal in GCC as a proof of concept, with regression tests,
+and reported:
 
 #quote[
   In general, the implementation was very straightforward, after discussing the approach with the maintainer, and coming
@@ -1230,10 +1230,10 @@ tried on #link("https://godbolt.org/z/9fcoYeMMf")[Compiler Explorer].
 == Consequences of Const Members <sec-const-consequences>
 
 Because a const capture makes the member genuinely `const`, it carries the ordinary consequences of a `const` data
-member -- nothing lambda-specific. A `const` member is copied rather than moved by the defaulted move constructor -- you cannot move from
-a `const` object. The move constructor initializes each member from the corresponding member of an xvalue referring to
-its parameter (#eelis("class.copy.ctor", 15)), so a `const M` member yields a `const M` xvalue, which cannot bind to
-`M(M&&)` (#eelis("class.copy.ctor", 9)); the copy constructor is selected instead.
+member -- nothing lambda-specific. A `const` member is copied rather than moved by the defaulted move constructor -- you
+cannot move from a `const` object. The move constructor initializes each member from the corresponding member of an
+xvalue referring to its parameter (#eelis("class.copy.ctor", 15)), so a `const M` member yields a `const M` xvalue,
+which cannot bind to `M(M&&)` (#eelis("class.copy.ctor", 9)); the copy constructor is selected instead.
 
 The closure's move constructor is therefore `noexcept` only when the member's _copy_ constructor is -- which, for any
 type whose copy allocates, it is not. Containers notice: `std::vector` reallocation uses `move_if_noexcept`, so a
@@ -1257,8 +1257,8 @@ int main() {
 ```
 
 This regression is not introduced by the proposal: `[x]` of a `const std::string` already produces a `const` member with
-exactly this behavior today (@CWG756, @N2927). A const capture only makes the request explicit. Two further consequences follow
-from the same class rule:
+exactly this behavior today (@CWG756, @N2927). A const capture only makes the request explicit. Two further
+consequences follow from the same class rule:
 
 - *Assignment.* A `const` member also deletes copy and move assignment (#eelis("class.copy.assign", 7)). This is inert
   while lambdas delete assignment regardless (#eelis("expr.prim.lambda.closure", 17)), but @P3963 (approved by EWG)
