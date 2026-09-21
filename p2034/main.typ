@@ -936,8 +936,10 @@ by-copy capture exactly as it is today; it settles only which of the two rules a
 A _simple-capture_ keeps the captured entity's type, retaining its cv-qualifiers: the member type is the referenced type
 if the entity is a reference to an object, an lvalue reference to the referenced function type if it is a reference to a
 function, and the entity's type otherwise (#eelis("expr.prim.lambda.capture", 10)). Capturing a `const T` therefore
-yields a `const` member -- a deliberate choice (@CWG756), so that `decltype`, overload resolution, and template argument
-deduction inside the lambda agree with the enclosing scope.
+yields a `const` member. This is deliberate: @CWG756 -- named for the question it raised, not for its resolution --
+asked whether a closure member should drop the captured entity's cv-qualifiers, and @N2927 resolved it the other way,
+giving such a member "the type of the corresponding captured entity". Capture is therefore cv-faithful, so that
+`decltype`, overload resolution, and template argument deduction inside the lambda agree with the enclosing scope.
 
 An _init-capture_ instead behaves "as if it declares ... a variable of the form `auto` _init-capture_ `;`" (#eelis(
   "expr.prim.lambda.capture",
@@ -1031,7 +1033,7 @@ auto outer = [const& x] {          // x is a const view of the original
 ```
 
 `inner` copies `x`, and because it copies from a `const` view the copy is itself `const` -- the same long-standing rule
-(@CWG756) that makes `[x]` of a `const` variable produce a `const` member. The consequence shows when the inner lambda
+(@CWG756, @N2927) that makes `[x]` of a `const` variable produce a `const` member. The consequence shows when the inner lambda
 is `mutable`:
 
 ```cpp
@@ -1207,7 +1209,7 @@ int main() {
 ```
 
 This regression is not introduced by the proposal: `[x]` of a `const std::string` already produces a `const` member with
-exactly this behavior today (@CWG756). A const capture only makes the request explicit. Two further consequences follow
+exactly this behavior today (@CWG756, @N2927). A const capture only makes the request explicit. Two further consequences follow
 from the same class rule:
 
 - *Assignment.* A `const` member also deletes copy and move assignment (#eelis("class.copy.assign", 7)). This is inert
@@ -1276,8 +1278,8 @@ lets the sugar express qualifications the desugared class already supports.
 
 1. *The standard specifies the closure as a class.*
   - #eelis("expr.prim.lambda.closure", 1) -- "a unique, unnamed non-union class type"
-  - #eelis("expr.prim.lambda.capture", 10), @CWG756 -- by-copy captures are non-static data members that retain the
-    entity's cv-qualifiers
+  - #eelis("expr.prim.lambda.capture", 10), @CWG756 as resolved by @N2927 -- by-copy captures are non-static data
+    members that retain the entity's cv-qualifiers
   - #eelis("expr.prim.lambda.closure", 7) -- the call operator is a member; special members are "implicitly defined as
     usual"
   - #eelis("expr.prim.lambda.capture", 6), @N3610, @N3648 -- an init-capture is defined as an `auto` variable
@@ -1300,7 +1302,7 @@ lets the sugar express qualifications the desugared class already supports.
     be real
 
 4. *Each revision has closed a gap with ordinary classes, never opened one.*
-  - @CWG756 -- cv-faithful capture members (C++11)
+  - @CWG756, @N2927 -- cv-faithful capture members (C++11)
   - @N3649, @N3610, @N3648 -- generic lambdas and init-captures (C++14)
   - @P0428, @P0780 -- explicit template parameters for generic lambdas, and pack-expansion init-captures (C++20)
   - @P0624 -- captureless lambdas default-constructible and assignable (C++20)
