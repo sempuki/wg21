@@ -1108,8 +1108,17 @@ the closure is moved -- subject to the usual reference-lifetime caveat.
 `[const& x = init]` can bind to a temporary. The language already permits this, but it is newly easy to write: today it
 takes an initializer that is already `const` -- a function returning `const T`, say -- since `auto&` will not bind to a
 non-`const` prvalue, which is why ```cpp [&x = f()]``` is normally an error. `[const& x = bar()]` works with any
-ordinary `bar()`. This proposal turns an obscure corner into an idiomatic spelling, so the lifetime question deserves an
-answer.
+ordinary `bar()`. This proposal turns an obscure corner into an idiomatic spelling, so the lifetime question deserves
+an answer -- and, as the end of this section shows, a warning.
+
+```cpp
+const Foo cf();                 // returns a `const` prvalue
+Foo f();                        // returns an ordinary prvalue
+
+auto a = [&x = cf()] { };       // the corner that exists today: `auto&` deduces `const Foo&`, which binds
+auto b = [&x = f()] { };        // error today: `auto&` will not bind to a non-`const` prvalue
+auto c = [const& x = f()] { };  // proposed: binds, whatever `f` returns
+```
 
 The answer follows from the existing rules. An _init-capture_ behaves as if it declares a variable of the form `auto`
 _init-capture_ `;`, and for a capture by reference "the variable's lifetime ends when the closure object's lifetime
