@@ -123,42 +123,22 @@
 
 == Changes from R8
 
-- Added @sec-reference-lifetime[Section], "Reference Captures of Temporaries": what happens when a `const&` capture
-  binds to a temporary, how copies of the closure behave, and the loss of the temporary when the closure is returned.
-  Notes the reading of #eelis("expr.prim.lambda.capture", 6) and #eelis("class.temporary", 6) that this raises, for
-  CWG's view.
-- Gave a second reason `[mutable&]` is unnecessary: the call operator's `const` never reaches through a reference, so a
-  plain `&` capture is already modifiable (@sec-mutable-byref[Section]).
-- Stated that `[mutable& x]` and `[mutable&]` are ill-formed because the grammar admits no such production, with
-  #eelis("dcl.stc", 8) as the reason for omitting it rather than the rule that rejects it.
-- Cited specific paragraphs throughout, and corrected citations naming the wrong subclause: the claims that a reference
-  capture need not create a member, and that this is captured by reference, are in #eelis("expr.prim.lambda.capture"),
-  not #eelis("expr.prim.lambda.closure").
-- Updated the #eelis("expr.const") citations for its split into #eelis("expr.const.core") and #eelis("expr.const.init").
-- Rebased the proposed wording from N5008 onto @N5054. Paragraph numbering in #eelis("expr.prim.lambda.closure") had
-  shifted, and @P3847 moved the declaration-order sentence out of #eelis("expr.prim.lambda.capture", 10) and narrowed
-  it: members introduced for explicit captures now follow the order of those captures. Narrowed the corresponding claim
-  in @sec-remaining-gaps[Section] and added @P3847 to the list of gaps the language has closed.
+- Added @sec-reference-lifetime[Section]: a `const&` capture can bind a temporary, whose lifetime then follows the
+  closure object's. One question on how the wording reads across a return is put to CWG.
+- Rebased the proposed wording from N5008 onto @N5054, and narrowed the declaration-order claim in
+  @sec-remaining-gaps[Section] per @P3847.
+- Corrected and tightened the standard citations throughout; no design change.
 
 == Changes from R7: #link("https://wiki.isocpp.org/2026-06_Brno:EvolutionWorkingGroup:P2034R6")[EWG Discussion]
 
-- Changed audience to CWG: EWG forwarded the paper to CWG for inclusion in C++29 (2026-06 Brno).
-- Recorded the 2026-06 Brno polls.
-- Retained the capture-default syntax `[mutable =]`, `[const&]`, and `[const =]`: EWG reached no consensus either to
-  additionally allow or to substitute the `[=mutable]`, `[&const]`, and `[=const]` spellings.
-- Completed the proposed wording for CWG review, drafting the parts previously deferred:
-  - implicit capture under the qualified capture-defaults `[mutable =]` and `[const =]`, and which explicit captures may
-    accompany a qualified default (#eelis("expr.prim.lambda.capture", 2));
-  - the logical-`const` specification of `[const&]`, in #eelis("expr.prim.id.unqual") and the nested re-capture rule
-    (#eelis("expr.prim.lambda.capture", 14)); and
-  - the non-implicit capture of `*this` under a qualified capture-default.
-- Unified the qualified by-copy member type with `auto` deduction, stripping both `const` and `volatile`.
-- Added a "Wording Design" section explaining the structure of the normative changes.
-- Expanded the design discussion: added "Recaptures" and "Redundant Default Captures", and rewrote "Const Capture
-  By-reference".
-- Dropped the proposed restriction making a `mutable` capture ill-formed on a `constexpr` or `consteval` lambda: it was
-  unnecessary, since #eelis("expr.const") already governs when such a member may be read. Broke "Interaction with
-  `consteval` and `constexpr` Lambdas" out into its own section and rewrote it accordingly.
+- Changed audience to CWG: EWG forwarded the paper for inclusion in C++29 (2026-06 Brno; polls above). The qualifier
+  spellings are unchanged -- EWG reached no consensus to allow or substitute `[=mutable]`, `[&const]`, or `[=const]`.
+- Completed the proposed wording, drafting the previously deferred parts: the qualified capture-defaults, the
+  logical-`const` specification of `[const&]`, and the non-implicit capture of `*this`. Unified the qualified by-copy
+  member type with `auto` deduction, and added a "Wording Design" section as a guide to the normative changes.
+- Dropped the restriction on `mutable` captures in `constexpr`/`consteval` lambdas as unnecessary
+  (#eelis("expr.const") already governs it), and expanded the design discussion ("Recaptures", "Redundant Default
+  Captures", "Const Capture By-reference").
 
 == Changes from R6: #link("https://wiki.isocpp.org/2026-03_Croydon:EvolutionWorkingGroup:P2034R6")[EWG Discussion]
 
