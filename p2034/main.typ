@@ -1228,17 +1228,19 @@ tried on #link("https://godbolt.org/z/9fcoYeMMf")[Compiler Explorer].
 
 == Consequences of Const Members <sec-const-consequences>
 
-Because the member is genuinely `const`, it carries the ordinary consequences of a `const` data member -- nothing
-lambda-specific. A `const` member is copied rather than moved by the defaulted move constructor -- you cannot move from
+Because a const capture makes the member genuinely `const`, it carries the ordinary consequences of a `const` data
+member -- nothing lambda-specific. A `const` member is copied rather than moved by the defaulted move constructor -- you cannot move from
 a `const` object. The move constructor initializes each member from the corresponding member of an xvalue referring to
 its parameter (#eelis("class.copy.ctor", 15)), so a `const M` member yields a `const M` xvalue, which cannot bind to
-`M(M&&)` (#eelis("class.copy.ctor", 9)); the copy constructor is selected instead. So the closure's move constructor is
-`noexcept` only when the member's _copy_ constructor is. Containers notice -- `std::vector` reallocation uses
-`move_if_noexcept`, so a member with a throwing copy (e.g. `std::string`) is copied on every growth:
+`M(M&&)` (#eelis("class.copy.ctor", 9)); the copy constructor is selected instead.
+
+The closure's move constructor is therefore `noexcept` only when the member's _copy_ constructor is -- which, for any
+type whose copy allocates, it is not. Containers notice: `std::vector` reallocation uses `move_if_noexcept`, so a
+closure holding a `const` member whose copy can throw (e.g. `std::string`) is copied, not moved, on every growth:
 
 ```cpp
 auto concatWith(const std::string x) {  // note the const
-  return [x] (std::string y) {          // deduce NSDM as `const std::string`
+  return [x] (std::string y) {          // deduces a `const std::string` NSDM, as `[const x]` would
     return x + y;
   };
 }
