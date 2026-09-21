@@ -1211,7 +1211,8 @@ needs no rule of its own, and this paper adds none.
 
 == Implementation Experience
 
-Ville Voutilainen implemented this proposal, including its extensions, in GCC with regression tests, and reported:
+Ville Voutilainen implemented an earlier revision of this proposal in GCC as a proof of concept, with regression
+tests, and reported:
 
 #quote[
   In general, the implementation was very straightforward, after discussing the approach with the maintainer, and coming
@@ -1769,8 +1770,10 @@ On adoption, bump `__cpp_lambdas` in #eelis("cpp.predefined") to the value corre
 Thanks to Patrick McMichael for suggesting the idea; to Nevin Liber and Matt Calabrese for important corrections; to
 Nevin Liber, Davis Herring, Barry Revzin, and Victoria Tsai for examples and suggestions; to Hana Dušíková and Ville
 Voutilainen for observing that the `constexpr`/`consteval` restriction was unnecessary; to Yihan Wang for raising the
-lifetime of a `const&` capture bound to a temporary, which became @sec-reference-lifetime[Section]; to Ville Voutilainen
-for the exploratory implementation; and to Daveed Vandevoorde for feedback on the wording.
+lifetime of a `const&` capture bound to a temporary, which became @sec-reference-lifetime[Section]; to Lakshay Garg for
+catching that the rationale for disallowing a qualified `this` contradicted the treatment of `[const& x]`, and for
+several other corrections; to Ville Voutilainen for the exploratory implementation; and to Daveed Vandevoorde for
+feedback on the wording.
 
 #pagebreak()
 
