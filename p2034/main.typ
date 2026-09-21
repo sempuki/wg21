@@ -660,7 +660,7 @@ A mutable capture is permitted on a mutable lambda: it is well-formed, although 
   ```],
 )
 
-== Const Capture By-copy
+== Const Capture By-copy <sec-const-bycopy>
 
 We propose a new form of by-copy capture called "const capture", which allows lambda captures to be `const` qualified,
 as shown below. The standard mandates that by-copy captures create a non-static data member (NSDM) in the closure type
@@ -732,7 +732,7 @@ T& x = ...;
 auto f = [mutable x]() { }; // closure type gets a `mutable T x;` member
 ```
 
-== Const Capture By-reference
+== Const Capture By-reference <sec-const-byref>
 
 Capture by copy is made `const` by the call operator; capture by reference is not. Two things stand in the way:
 
@@ -775,11 +775,14 @@ add nothing (@sec-mutable-byref[Section]).
 
 === Applicability
 
-Unlike the by-copy forms, a `const&` capture is never redundant. On a `const` lambda ```cpp [x]``` already yields a
-`const` member, so ```cpp [const x]``` adds nothing; but ```cpp [&x]``` does not yield a `const` view, because the call
-operator's `const` does not reach the referent. `[const& x]` is the only way to ask for one, and it asks for the same
-thing on either kind of lambda. The cells below give the meaning of `x` in the body rather than a desugared `struct`,
-since a reference capture need not declare a member to show.
+Unlike the by-copy forms, a `const&` capture of a non-`const` object is never redundant. On a `const` lambda
+```cpp [x]``` already stops the body from modifying `x`, so ```cpp [const x]``` adds nothing to what the body may do.
+(It is not thereby a no-op: the `const` lambda leaves the member itself non-`const`, so the two spellings still differ
+in the member's type and in the closure's -- @sec-const-bycopy[Section], @sec-const-consequences[Section].) A `const`
+lambda does nothing at all for ```cpp [&x]```, because the call operator's `const` does not reach the referent, so `x`
+stays modifiable. `[const& x]` is the only way to ask for a `const` view, and it asks for the same thing on either kind
+of lambda. The cells below give the meaning of `x` in the body rather than a desugared `struct`, since a reference
+capture need not declare a member to show.
 
 #table(
   columns: (auto, 1fr, 1fr),
@@ -790,6 +793,10 @@ since a reference capture need not declare a member to show.
   [```cpp [&x]```], [`x` is a modifiable lvalue], [`x` is a modifiable lvalue],
   [```cpp [const& x]```], [`x` is a `const` lvalue], [`x` is a `const` lvalue],
 )
+
+The table assumes a non-`const` `x`, which is where the two forms differ. If `x` is itself `const`, ```cpp [&x]```
+already binds a reference to `const` and ```cpp [const& x]``` means the same thing -- the redundancy then comes from
+the object, not from the capture.
 
 == Capture Defaults
 
