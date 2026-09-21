@@ -330,26 +330,31 @@ EWGI believes P2034R3 is sufficiently well developed, EWGI forwards it to EWG: _
 = Background
 
 Lambdas were introduced in @N2550, and while previous drafts (@N2529) considered mutable capture by value, the original
-wording left captures entirely const. @N2658 salvaged mutable for _all_ captures by allowing the `mutable` keyword to
-modify the call.
+wording left captures entirely const. @N2658 restored mutability for _all_ captures by allowing the `mutable` keyword
+on the call operator.
 
 `std::move_only_function` (@P0288, C++23), and since then `std::copyable_function` (@P2548) and `std::function_ref`
 (@P0792) in C++26, improved on `std::function` by respecting the `const` qualifier on their call signature (e.g.
 `move_only_function<void(int) const>`). A `const`-qualified call type binds only to lambdas that are not marked
 `mutable` (#eelis("func.wrap.move.ctor")).
 
-A type that is #link("https://isocpp.org/wiki/faq/const-correctness#mutable-data-members")["logically const"] is a type
-that has some members that do not fundamentally change the invariants of the object when mutated, even when it is const.
+A type is #link("https://isocpp.org/wiki/faq/const-correctness#mutable-data-members")["logically const"] when some of
+its members -- a cache, a mutex, an accumulator -- can be mutated without changing the object's observable state; such
+members are declared `mutable` so that a `const` object can still update them.
 
-Taken together, this means the above standard types, and _any_ other const-correct callable library, _cannot_ work with
-logically const lambdas in the current form.
+A lambda has no way to declare a `mutable` member, so these standard types -- and any other const-correct callable
+wrapper -- cannot hold a logically const lambda today:
+
+```cpp
+move_only_function<void() const> f =
+    [buf]() mutable { /* ... */ };  // error: a mutable lambda has a non-const call operator
+```
 
 = Initial Motivation: Const-correctness <sec-initial-motivation>
 
-Type erased callables like those above are the backbone of most asynchronous systems. Users of such systems enclose
-their operations in lambdas and place them in a concurrent queue to be processed elsewhere. Performance is often key in
-such systems, and such operations may want their own local reusable scratch memory. Or perhaps an accumulator for
-hysteresis over multiple calls.
+Type-erased callables like these are common in asynchronous systems. Users enclose their operations in lambdas and
+place them in a concurrent queue to be processed elsewhere. Performance often matters in these systems, and an
+operation may need its own mutable state: reusable scratch memory, or an accumulator carried across calls.
 
 ```cpp
 struct MyRealtimeHandler {
@@ -366,9 +371,9 @@ concurrent::queue<move_only_function<void(Timestamp) const>> queue;
 queue.push(MyRealtimeHandler{f, s});
 ```
 
-Lambdas in such cases require workarounds, such as abandoning logical const correctness, abandoning ownership, or
-introducing intermediary {non-}const-propagating types. Strict ownership rules are important due to the asynchronous
-nature of the handler, and const correctness is important for memory- and thread-safety.
+Lambdas in such cases require workarounds: abandoning logical const correctness, abandoning ownership, or introducing
+wrapper types that change how `const` propagates. Strict ownership matters because the handler runs asynchronously, and
+const correctness matters for memory- and thread-safety.
 
 However if we expand lambdas to allow mutable capture, then only the logically mutable non-static data members become
 mutable, and the rest of the captures can remain const. The idea is illustrated below.
@@ -465,21 +470,17 @@ mutable, and the rest of the captures can remain const. The idea is illustrated 
   ],
 )
 
-The proposal would allow programmers to *apply `const` with simplicity and precision* to lambda captures -- improving
-applicability of const in cases where programmers would otherwise:
+The proposal lets programmers apply `const` to lambda captures precisely, where today they would either:
 
-1. Declare the lambda blanket mutable.
-2. Declare captures by const {non-}propagating wrapper.
+1. declare the whole lambda `mutable`, or
+2. wrap individual captures in types that add or remove `const`.
 
-Applying `const` with more purpose and simpler syntax would improve the safety and security of such code -- especially
-for programmers that have learned about the `const` declarations, but are not yet comfortable with
-`const`-{non-}propagating wrappers. Avoiding use of wrappers also makes lambda captures smaller and thus easier to read
-and reason about.
+A direct spelling improves the safety and security of such code, especially for programmers who know `const` but not
+the wrapper idioms. Avoiding wrappers also keeps captures short and easier to read.
 
-Alternatively, if most of the values captured are modifiable, but one should be `const`, then the following would be
-similarly shorter and more readable. The alternative is to simply leave otherwise const captures modifiable, or to use
-`std::cref`. The former is less safe, and the latter may be undesirable because the lambda does not own the object
-referred to, which may create lifetime issues. Moreover it requires a more verbose assignment syntax.
+The reverse case -- most captures modifiable, one `const` -- benefits the same way. Today the choices are to leave the
+would-be `const` capture modifiable, which is less safe, or to use `std::cref`, which gives up ownership (a lifetime
+risk) and takes a more verbose spelling.
 
 #table(
   columns: (1.3fr, 1fr),
@@ -550,29 +551,25 @@ referred to, which may create lifetime issues. Moreover it requires a more verbo
   ],
 )
 
-Allowing `const` captures is ergonomic and simple.
-
 = Subsequent Motivation: Symmetry and Simplicity
 
-Our initial motivation only needs a handful of combinations of `const` or `mutable` extensions to lambda syntax in order
-to meet its use cases -- but in subsequent meetings EWG has expressed interest in symmetry and simplicity for its own
-sake, and asked the authors to investigate the design space.
+Our initial motivation needs only a handful of `const`/`mutable` combinations -- but in subsequent meetings EWG
+expressed interest in symmetry and simplicity for their own sake, and asked the authors to investigate the design
+space.
 
-There seems to be a commonly shared feeling that there is a simpler language hiding in C++, and that the lambda syntax
-should be orthogonal to all the other ways of declaring callable types, not a microcosm unto itself. The authors agree
-and have investigated all possible capture possibilities involving `const` or `mutable` captures and operator
-qualification.
+A recurring view in those discussions is that lambda syntax should be orthogonal to the other ways of declaring
+callable types, not a special case with its own rules. The authors agree, and have investigated every combination of
+`const` and `mutable` on captures and on the call operator.
 
 = Design
 
-Some of the combinations of `const` or `mutable` that fall out of this design may not have very obvious uses, but this
-paper pursues symmetry and conceptual simplicity for its own sake.
+Some combinations in this design have no obvious use of their own; the paper includes them for symmetry and conceptual
+simplicity.
 
 == Summary
 
-At a high level: we have found that it is simple and straightforward to extend both `const` and `mutable` keywords to
-lambda syntax in a way that closely mirrors most users' mental model of lambda as "a means of getting an object of a
-callable struct", that is easy to implement, and is in line with the ongoing evolution of the language:
+Both `const` and `mutable` extend to lambda captures in a way that matches the common model of a lambda -- shorthand
+for an object of a callable struct -- is easy to implement, and follows the language's direction:
 
 - By-copy captures can be prefixed by `const` or `mutable`, and this results in the non-static data member (NSDM)
   (#eelis("expr.prim.lambda.capture", 10)) being declared as `const` or `mutable` respectively, and initialized with the
@@ -580,7 +577,7 @@ callable struct", that is easy to implement, and is in line with the ongoing evo
   predictable behavior (that is the same as if they had declared the callable type manually).
 
 - By-reference captures do not necessarily generate non-static data members (NSDM), and are unaffected by the call
-  operator qualification due to the shallow propagation of `const`. `const&` captures have utility as read-only views,
+  operator qualification due to the shallow propagation of `const`. `const&` captures are useful as read-only views,
   but `mutable` references do not exist.
 
 == Const Lambdas
@@ -600,7 +597,7 @@ a capture.
 []() const {}  // identical to []() {}
 ```
 
-For clarity we prefer to use the explicit syntax below.
+In the examples that follow, we write the call operator's qualifier explicitly for clarity.
 
 == Mutable Capture By-copy
 
@@ -622,8 +619,8 @@ effect of declaring it `mutable`.
 
 === Applicability
 
-A mutable capture is permitted on a mutable lambda: it is well-formed, although is redundant in effect. Note however, a
-```cpp [x]() mutable {}``` is a different type than a ```cpp [mutable x]() mutable {}```.
+A mutable capture is permitted on a mutable lambda: well-formed, although redundant in effect. Note however that
+```cpp [x]() mutable {}``` and ```cpp [mutable x]() mutable {}``` are different types.
 
 #table(
   columns: (auto, 1fr, 1fr),
@@ -680,9 +677,9 @@ declaring it `const`.
 
 === Applicability
 
-A const capture is permitted on a const lambda: it is well-formed, although is redundant in effect. Note however, a
-```cpp [x]() const {}``` is a different type than a ```cpp [const x]() const {}```, and const members create other
-concerns: see @sec-const-consequences[Section].
+A const capture is permitted on a const lambda: well-formed, although redundant in effect. Note however that
+```cpp [x]() const {}``` and ```cpp [const x]() const {}``` are different types, and const members carry other
+consequences: see @sec-const-consequences[Section].
 
 #table(
   columns: (auto, 1fr, 1fr),
@@ -756,8 +753,13 @@ Second, a reference capture need not produce a member at all: the standard leave
 Capturing by `const` reference is nonetheless useful -- read-only access to an object too large to copy -- but today it
 takes `std::cref` or `std::as_const`, neither as concise nor as discoverable as `const&`.
 
-We therefore depart from analogy with struct members briefly, and define the meaning `[const& x]` directly: within the
-body, `x` is a `const` lvalue reference, and any nested lambda that re-captures it observes that `const` (see
+```cpp
+auto a = [x = std::cref(x)] { return x.get().size(); };  // today: the member is a reference_wrapper
+auto b = [const& x] { return x.size(); };                 // proposed
+```
+
+We therefore depart from analogy with struct members briefly, and define the meaning of `[const& x]` directly: within
+the body, `x` is a `const` lvalue reference, and any nested lambda that re-captures it observes that `const` (see
 @sec-recaptures[Section]). The usual reference-lifetime caveats apply (@sec-reference-lifetime[Section]). The call
 operator's `const` is shallow on references, so it never reaches the referent -- which is also why `[mutable&]` would
 add nothing (@sec-mutable-byref[Section]).
@@ -777,7 +779,7 @@ add nothing (@sec-mutable-byref[Section]).
 
 Unlike the by-copy forms, a `const&` capture of a non-`const` object is never redundant. On a `const` lambda
 ```cpp [x]``` already stops the body from modifying `x`, so ```cpp [const x]``` adds nothing to what the body may do.
-(It is not thereby a no-op: the `const` lambda leaves the member itself non-`const`, so the two spellings still differ
+(It is not a no-op: the `const` lambda leaves the member itself non-`const`, so the two spellings still differ
 in the member's type and in the closure's -- @sec-const-bycopy[Section], @sec-const-consequences[Section].) A `const`
 lambda does nothing at all for ```cpp [&x]```, because the call operator's `const` does not reach the referent, so `x`
 stays modifiable. `[const& x]` is the only way to ask for a `const` view, and it asks for the same thing on either kind
@@ -849,7 +851,7 @@ struct X {
 
 A qualified capture-default applies its qualifier only to the entities it captures implicitly; an explicitly-listed
 `this` or `*this` is captured by its own rules and is unaffected by the default's qualifier. Combined with
-@sec-this[Section] -- where `this` and `*this` may not themselves be qualified -- this fixes every combination: an
+@sec-this[Section] -- where `this` and `*this` may not themselves be qualified -- this settles every combination: an
 explicitly-listed `this` or `*this` is captured as it is today whatever the default says, and a _qualified_ `this` or
 `*this` is ill-formed wherever it appears.
 
@@ -917,9 +919,9 @@ _by copy_, declaring an unnamed non-static data member of the enclosing class ty
 (#eelis("expr.prim.lambda.capture", 10)). We recommend disallowing `const` and `mutable` on all four spellings --
 `[const this]`, `[mutable this]`, `[const *this]`, and `[mutable *this]` -- until experience is accrued.
 
-`[mutable this]` aside, these are deferrals rather than claims that the forms could not be given a meaning: the
-qualifier would mean what it means everywhere else in this paper, and what stands in the way is wording we would have
-to write for a capture with no demonstrated demand.
+`[mutable this]` aside, these are deferrals, not claims that the forms could have no meaning: the qualifier would mean
+what it means everywhere else in this paper, and the obstacle is only the wording we would have to write for a capture
+with no demonstrated demand.
 
 #table(
   columns: (auto, 1fr, 1fr),
@@ -947,8 +949,7 @@ to write for a capture with no demonstrated demand.
     wording, but we would rather defer both than admit one qualifier on `*this` and not the other],
 )
 
-Deferring costs little, which is why we ask for silence now rather than a prohibition on principle: both requests
-already have a spelling under this proposal.
+Deferring costs little: both requests already have a spelling under this proposal.
 
 ```cpp
 struct X {
@@ -961,7 +962,7 @@ struct X {
 };
 ```
 
-If those _init-captures_ see use, a later paper can add the shorter spellings; nothing here forecloses them.
+If those _init-captures_ see use, a later paper can add the shorter spellings; nothing here prevents that.
 
 == Deducing the NSDM Type
 
@@ -1030,8 +1031,9 @@ That leaves two candidate rules for a qualified simple-capture:
 )
 
 1. Simple-capture: _preserve the entity's cv-qualifiers, then add the requested qualifier_. Adding `mutable` over a
-  `const` entity forms `mutable const T`, which is an error which we simply accept. This is faithful to cv-preservation
-  but surprising and fragile: whether `[mutable x]` compiles depends on a cv-qualifier the author may not control.
+  `const` entity forms `mutable const T`, which is ill-formed; the rule would simply accept the error. This is
+  faithful to cv-preservation but surprising and fragile: whether `[mutable x]` compiles depends on a cv-qualifier the
+  author may not control.
 2. Init-capture: _deduce by `auto` rules, then apply the requested qualifier_, exactly as an init-capture does. `auto`
   deduction drops any top-level cv-qualifiers, so `mutable` never collides with a `const`; `const` then adds one. This
   is uniform across both qualifiers and both capture forms.
@@ -1059,8 +1061,8 @@ observe the real member type.
 
 == Recaptures <sec-recaptures>
 
-`[const& x]` gives the body a `const` view of the original object. What nesting raises is the question of what an
-_inner_ lambda sees when it re-captures `x`:
+`[const& x]` gives the body a `const` view of the original object. Nesting raises the question of what an _inner_
+lambda sees when it re-captures `x`:
 
 ```cpp
 auto outer = [const& x] {          // x is a const view of the original
@@ -1078,9 +1080,9 @@ auto outer = [const& x] {
 };
 ```
 
-Letting `inner` mutate its own copy would quietly contradict the `const` view `[const& x]` promised one line above. (The
-original object is untouched either way -- but a _modifiable_ copy silently appearing from a `const` capture is the kind
-of surprise const-correctness exists to prevent.) The `const` carries through any depth of nesting, including through
+Letting `inner` mutate its own copy would contradict the `const` view `[const& x]` promised one line above. The
+original object is untouched either way, but a modifiable copy appearing from a `const` capture is the kind of surprise
+`const` exists to prevent. The `const` carries through any depth of nesting, including through
 intervening plain-reference captures: a `[const& x]` several levels out still yields a `const` copy at the bottom.
 
 None of the following are special cases; each follows from two facts -- a `const`-reference view is `const`, and a copy
@@ -1145,7 +1147,7 @@ Three consequences follow, and they settle the questions this form raises:
 - *A copy that outlives the original dangles.* The temporary dies with the original closure, leaving any surviving copy
   referring to a destroyed object -- the ordinary consequence of a reference outliving its referent.
 
-The sharp edge is returning such a closure:
+The dangerous case is returning such a closure:
 
 ```cpp
 auto make() {
@@ -1220,7 +1222,7 @@ and reported:
   storage-class-specifier for mutable. The implementation effort was a matter of a single afternoon.
 ]
 
-That the change reduces to adjusting capture-member types and storage-class-specifiers is itself evidence for
+The change reduces to adjusting capture-member types and storage-class-specifiers, which is itself evidence for
 @thesis[Section]: the closure is already a class, and the proposal only sets qualifiers on its members. The
 implementation is available on #link("https://github.com/villevoutilainen/gcc/tree/lambda-p2034")[GitHub] and can be
 tried on #link("https://godbolt.org/z/9fcoYeMMf")[Compiler Explorer].
@@ -1286,8 +1288,8 @@ non-`const` member behind a `const` spelling -- would trade a teachable rule for
 `const` capture behaves as a `const` member because it is one; the rules for using it well are the rules for any `const`
 member.
 
-- Reach for `const` capture to make genuinely-immutable owned state immutable, not as a reflexive annotation. Its cost
-  is the cost of a `const` member, no more and no less.
+- Use `const` capture for owned state that is genuinely immutable, not as a default annotation. Its cost is the cost
+  of a `const` member, no more and no less.
 - A closure headed for a reallocating container, or one that must be assignable, pays for a `const` capture of an
   expensive-to-copy type on every move; if that cost matters, do not `const`-capture that member.
 - Never `const`-capture a move-only type you must move out of -- the closure becomes non-movable.
@@ -1298,7 +1300,8 @@ member.
 
 == East v. West Const
 
-In both East- and West-`const` styles the `const` appears before the identifier; this proposal does not change that.
+In both East-`const` (`int const x`) and West-`const` (`const int x`) styles, the `const` appears before the
+identifier; `[const x]` is consistent with both.
 
 == Pointer to Const v. Const Pointer
 
@@ -1319,10 +1322,14 @@ A lambda whose call operator is `static` (#link("https://wg21.link/p1169")[P1169
 have a _lambda-capture_ (#eelis("expr.prim.lambda.general", 4)), so a `const` or `mutable` capture cannot co-occur with
 a `static` call operator; the combination is ill-formed.
 
+```cpp
+auto f = [const x]() static { };  // ill-formed: static permits no captures
+```
+
 = Lambdas Are Syntactic Sugar for Function Objects <thesis>
 
-C++ has converged towards the reality that lambdas are just sugar for a hand-written function object; this proposal only
-lets the sugar express qualifications the desugared class already supports.
+C++ has converged on lambdas as sugar for a hand-written function object; this proposal only lets the sugar express
+qualifications the desugared class already supports.
 
 1. *The standard specifies the closure as a class.*
   - #eelis("expr.prim.lambda.closure", 1) -- "a unique, unnamed non-union class type"
@@ -1346,8 +1353,8 @@ lets the sugar express qualifications the desugared class already supports.
 3. *Reflection exposes the captures as ordinary members.*
   - @P2996 -- `nonstatic_data_members_of` enumerates a closure's captures; `type_of` and `is_mutable_member` report each
     member's type and `mutable`-ness
-  - a capture spelled `const` whose member were not `const` would make reflection report a falsehood, so the member must
-    be real
+  - if a capture spelled `const` did not produce a `const` member, reflection would report the wrong type, so the
+    member must be real
 
 4. *Each revision has closed a gap with ordinary classes, never opened one.*
   - @CWG756, @N2927 -- cv-faithful capture members (C++11)
@@ -1359,8 +1366,8 @@ lets the sugar express qualifications the desugared class already supports.
   - @P3963 -- copy and move assignment for captured lambdas (EWG-approved, pending CWG)
 
 5. *It is the orthogonal design.*
-  - `const`, `mutable`, and reference qualifiers mean on a capture exactly what they mean on a member -- not a microcosm
-    with bespoke rules; the "simpler language hiding in C++" is the function object the lambda already lowers to
+  - `const`, `mutable`, and reference qualifiers mean on a capture exactly what they mean on a member -- there is no
+    separate set of lambda rules to learn; the function object the lambda lowers to already defines them
 
 You can run this code today:
 
@@ -1430,11 +1437,11 @@ ways.
 
 The thesis is that the closure _is_ a class with a function object's member semantics, and that `const` and `mutable` on
 a capture should mean what they mean on a member -- not that a lambda is a way to write an arbitrary class. These
-residual differences are exactly what make a lambda worth having.
+residual differences are what make a lambda worth having.
 
 = Wording Design
 
-The feature is small, and the wording is mostly small with it: in the common case it sets a cv-qualification and a
+The feature is small, and so is most of the wording: in the common case it sets a cv-qualification and a
 storage-class-specifier on members the closure already declares. This section is a guide to how the normative changes
 are organized and why they take the shape they do -- the design of the _wording_, as distinct from the design of the
 feature above. It is written for readers following the proposed wording closely.
@@ -1519,7 +1526,7 @@ direction of the C++20 deprecation; the unqualified `=` and `&` are unchanged.
 Some cases are handled by omission. The grammar offers no production for a qualified `this` or `*this`, so
 `[const this]` and the like are ill-formed with no constraint required. The representation of reference captures remains
 unspecified, so `[const&]` declares no member and needs no member wording. And the `const` _lambda-specifier_, being
-inert, changes no rule beyond the note noted above.
+inert, changes no rule beyond the note added above.
 
 A `mutable` capture on a `constexpr` or `consteval` lambda likewise needs no constraint of its own; the existing rules
 in #eelis("expr.const") already settle it. The lvalue-to-rvalue conversion that reads a member is permitted, among other
