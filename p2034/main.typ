@@ -1704,7 +1704,7 @@ Changes are relative to @N5054, using the #ins[insert] and #del[strike] conventi
     - If `m1` captures the entity by reference, `m2` captures the same entity captured by `m1`. #ins[If an
         _id-expression_ naming the entity within the _compound-statement_ of `m1` would have const-qualified type
         (#eelis("expr.prim.id.unqual")), then the entity is considered to be const-qualified for the determination of
-        the type of any non-static data member declared for `m2`'s capture (#eelis("expr.prim.lambda.capture", 10)).]
+        the type of any non-static data member declared for `m2`'s capture.]
   ]
 ]
 
