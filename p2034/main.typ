@@ -1461,8 +1461,7 @@ the qualified branches; the `mutable` storage class excludes it explicitly, and 
 == The `const` specifier and the specifier constraints
 
 The `const` _lambda-specifier_ introduces no behavior (the call operator is already `const` unless `mutable` or
-`static` is present), so the closure-type wording gains only a note saying so (#eelis("expr.prim.lambda.closure", 7)),
-and the specifier constraints in #eelis("expr.prim.lambda.general", 4) gain only the entry forbidding `const` alongside
+`static` is present), so #eelis("expr.prim.lambda.general", 4) gains an entry forbidding `const` alongside
 an explicit object parameter and the mutual exclusion of `const`, `mutable`, and `static`.
 
 == `const&` has no member to qualify
@@ -1573,22 +1572,8 @@ Changes are relative to @N5054, using the #ins[insert] and #del[strike] conventi
   and `consteval`. If the _lambda-declarator_ contains an explicit object parameter, then no _lambda-specifier_ in the
   _lambda-specifier-seq_ shall be #ins[`const`,] `mutable`, or `static`. The _lambda-specifier-seq_ shall #del[not
     contain both `mutable` and `static`] #ins[contain at most one of `const`, `mutable`, or `static`]. If the
-  _lambda-specifier-seq_ contains `static`, there shall be no _lambda-capture_.
-]
-
-== [expr.prim.lambda.closure]
-
-#nobreak[
-  === Add a note to #eelis("expr.prim.lambda.closure", 7)
-  #quote[
-    ... It is a non-static member function or member function template that is declared `const` if and only if the
-    _lambda-expression_'s _parameter-declaration-clause_ is not followed by `mutable` and the _lambda-declarator_ does
-    not contain an explicit object parameter. ...
-
-    #ins[\[_Note_: The `const` _lambda-specifier_ has no additional effect; the function call operator is declared
-      `const` if and only if `mutable` and `static` are not specified, regardless of whether `const` is present. ---
-      _end note_\]]
-  ]
+  _lambda-specifier-seq_ contains `static`, there shall be no _lambda-capture_. #ins[The presence of the `const`
+  _lambda-specifier_ has no effect.]
 ]
 
 == [expr.prim.lambda.capture]
