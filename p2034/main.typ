@@ -93,7 +93,7 @@
   columns: 2,
   inset: (left: 0%, y: 4pt),
   stroke: none,
-  "Document", link("https://wg21.link/P2034")[P2034R9],
+  "Document", link("https://wg21.link/P2034")[P2034R10-draft],
   "Date", datetime.today().display(),
   "Audience", "CWG",
   "Project", [ISO/IEC JTC1/SC22/WG21 14882: Programming Language -- C++],
@@ -120,6 +120,12 @@
 = Revision History
 
 #set heading(outlined: false)
+
+== Changes from R9
+
+- Clarified why `mutable&` does not exist in the summary
+- Reduced repetition in the wording
+- Added a few examples for the new facilities into the wording
 
 == Changes from R8
 
