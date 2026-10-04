@@ -1610,12 +1610,10 @@ Changes are relative to @N5054, using the #ins[insert] and #del[strike] conventi
 #nobreak[
   === Change #eelis("expr.prim.lambda.capture", 2)
   #quote[
-    #del[If a _lambda-capture_ includes a _capture-default_ that is `&`, no identifier in a _simple-capture_ of that
-      _lambda-capture_ shall be preceded by `&`. If a _lambda-capture_ includes a _capture-default_ that is `=`, each
-      _simple-capture_ of that _lambda-capture_ shall be of the form "`&` _identifier_ ...#sub[_opt_]", "`this`", or
-      "`* this`".]
-    #ins[If a _lambda-capture_ includes a _capture-default_, no _simple-capture_ of that _lambda-capture_ shall be of
-      the form]
+    If a _lambda-capture_ includes a _capture-default_ #del[that is `&`, no identifier in a _simple-capture_ of that
+    _lambda-capture_ shall be preceded by `&`. If a _lambda-capture_ includes a _capture-default_ that is `=`, each]
+    #ins[, no] _simple-capture_ of that _lambda-capture_ shall be of the form #del["`&` _identifier_ ...#sub[_opt_]",
+    "`this`", or "`* this`".]
     #ins[
       - "_identifier_ ...#sub[_opt_]" if the _capture-default_ is `=`,
       - "`mutable` _identifier_ ...#sub[_opt_]" if the _capture-default_ is `mutable =`,
