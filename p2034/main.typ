@@ -1685,8 +1685,11 @@ Changes are relative to @N5054, using the #ins[insert] and #del[strike] conventi
   === Change #eelis("expr.prim.lambda.capture", 12)
   #quote[
     An entity is _captured by reference_ if it is implicitly or explicitly captured but not captured by copy.
-    #ins[An entity captured by reference is _captured by const reference_ if it is either explicitly captured with a
-      `const &` capture, or it is implicitly captured and the _capture-default_ is `const &`.]
+    #ins[An entity captured by reference is _captured by const reference_ if
+    - it is implicitly captured, and the _capture-default_ is `const &`, or
+    - it is explicitly captured with a capture of the form `const &` _identifier_ ...#sub[_opt_],
+      or `const &` ...#sub[_opt_] _identifier initializer_.
+    ]
     It is unspecified whether additional unnamed non-static data members are declared in the closure type for entities
     captured by reference. If declared, such non-static data members shall be of literal type.
   ]
