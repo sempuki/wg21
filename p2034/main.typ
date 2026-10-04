@@ -1469,7 +1469,7 @@ an explicit object parameter and the mutual exclusion of `const`, `mutable`, and
 
 A reference capture need not create a member at all (#eelis("expr.prim.lambda.capture", 12)), so `const` has nothing to
 attach to. The `const` is therefore a property of the name's _type_, and the one place that already determines the type
-of a captured name is #eelis("expr.prim.id.unqual", 4). We add a paragraph there: when a name resolves to an entity
+of a captured name is #eelis("expr.prim.id.unqual", 4). We add a case there: when a name resolves to an entity
 captured by `const` reference anywhere in the enclosing chain of lambdas, its type is `const`-qualified.
 
 We add a separate paragraph rather than widen the existing by-copy rule. Widening was tried, by changing that rule's
@@ -1541,33 +1541,17 @@ Changes are relative to @N5054, using the #ins[insert] and #del[strike] conventi
     - the _unqualified-id_ appears in a _lambda-expression_ at program point P,
     - the entity is a local entity or a variable declared by an _init-capture_,
     - naming the entity within the _compound-statement_ of the innermost enclosing _lambda-expression_ of P, but not in
-      an unevaluated operand, would refer to an entity captured by copy in some intervening _lambda-expression_, and
+      an unevaluated operand, would refer to an entity captured by copy #ins[or by const reference] in some intervening _lambda-expression_, and
     - P is in the function parameter scope, but not the _parameter-declaration-clause_, of the innermost such
       _lambda-expression_ _E_,
 
-    then the type of the expression is the type of a class member access expression naming the non-static data member
-    that would be declared for such a capture in the object parameter of the function call operator of _E_.
+    then the type of the expression is#ins[:
+    - the const-qualified type of the entity in the case of an entity captured by const reference, and]
+    - the type of a class member access expression naming the non-static data member that would be declared for such a capture in the object parameter of the function call operator of _E_ #ins[otherwise]
 
     \[_Note 3:_ If _E_ is not declared `mutable` #ins[and the entity is not captured mutably (#eelis(
         "expr.prim.lambda.capture",
       )) by _E_], the type of such an identifier will typically be `const` qualified. --- _end note_\]
-  ]
-]
-
-#nobreak[
-  === Add a paragraph after #eelis("expr.prim.id.unqual", 4)
-  #quote[
-    #ins[Otherwise, if
-      - the _unqualified-id_ appears in a _lambda-expression_ at program point P,
-      - the entity is a local entity or a variable declared by an _init-capture_,
-      - naming the entity within the _compound-statement_ of the innermost enclosing _lambda-expression_ of P, but not
-        in an unevaluated operand, would refer to an entity captured by const reference (#eelis(
-          "expr.prim.lambda.capture",
-        )) in some intervening _lambda-expression_, and
-      - P is in the function parameter scope, but not the _parameter-declaration-clause_, of the innermost such
-        _lambda-expression_,
-
-      then the type of the expression is the `const`-qualified type of the entity.]
   ]
 ]
 
