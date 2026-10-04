@@ -1656,9 +1656,8 @@ Changes are relative to @N5054, using the #ins[insert] and #del[strike] conventi
     An entity is _captured by copy_ if
     - it is implicitly captured, the _capture-default_ is #ins[_capture-qualifier_#sub[_opt_]] `=`, and the
       captured entity is not `*this`, or
-    - it is explicitly captured with a capture that is not of the form `this`, `&` _identifier_ ...#sub[_opt_],
-      #ins[`const &` _identifier_ ...#sub[_opt_]] #replace[or][,] `&` ...#sub[_opt_] _identifier initializer_ #ins[or
-        `const &` ...#sub[_opt_] _identifier initializer_].
+    - it is explicitly captured with a capture that is not of the form `this`, #ins[`const`#sub[_opt_]] `&` _identifier_ ...#sub[_opt_],
+      or #ins[`const`#sub[_opt_]] `&` ...#sub[_opt_] _identifier initializer_.
 
     #ins[An entity captured by copy is _captured mutably_ if it is explicitly captured by a _capture_ that begins with
       `mutable`, or it is implicitly captured and the _capture-default_ is `mutable =`.]
@@ -1666,22 +1665,18 @@ Changes are relative to @N5054, using the #ins[insert] and #del[strike] conventi
     #ins[An entity captured by copy is _captured by const copy_ if it is explicitly captured by a _capture_ that begins
       with `const`, or it is implicitly captured and the _capture-default_ is `const =`.]
 
-    For each entity captured by copy, an unnamed non-static data member is declared in the closure type. #del[The type
-      of such a data member is the referenced type if the entity is a reference to an object, an lvalue reference to
-      the referenced function type if the entity is a reference to a function, or the type of the corresponding
-      captured entity otherwise.] #ins[The type of such a data member is an
-      lvalue reference to the referenced function type if the entity is a reference to a function. Otherwise, letting
-      _U_ be the referenced type if the entity is a reference to an object and the type of the entity otherwise, and _V_
-      be _U_ with any top-level cv-qualifiers removed, it is]
+    For each entity captured by copy, an unnamed non-static data member is declared in the closure type. The type
+      of such a data member is #del[the referenced type if the entity is a reference to an object,] an lvalue reference to
+      the referenced function type if the entity is a reference to a function#del[, or the type of the corresponding
+      captured entity otherwise]. #ins[Otherwise, letting
+      `U` be the referenced type if the entity is a reference to an object and the type of the entity otherwise, and `V`
+      be `U` with any top-level cv-qualifiers removed, it is]
     #ins[
-      - _V_, if the entity is captured mutably,
-      - `const`-qualified _V_, if the entity is captured by const copy, or
-      - _U_ otherwise.
+      - `V`, if the entity is captured mutably,
+      - `const V`, if the entity is captured by const copy, or
+      - `U` otherwise.
     ]
     #ins[If the entity is captured mutably and is not a reference to a function, the data member is declared `mutable`.]
-    #ins[\[_Note_: For an entity that is a reference to a function, the data member is a reference, which can be neither
-      `const`-qualified nor `mutable` (#eelis("basic.type.qualifier"), #eelis("dcl.stc")); a `const` or `mutable`
-      capture of such an entity therefore has no effect on the data member. --- _end note_\]]
     A member of an anonymous union shall not be captured by copy.
   ]
 ]
