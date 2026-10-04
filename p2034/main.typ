@@ -803,12 +803,12 @@ The current grammar admits only `&` and `=` as a _capture-default_ (#eelis("expr
 
 #grammar[
   capture-default: \
-  capture-default-qualifier#sub[opt] \= \
+  capture-qualifier#sub[opt] \= \
   `const`#sub[opt] &
 ]
 
 #grammar[
-  capture-default-qualifier: \
+  capture-qualifier: \
   `const` \
   `mutable`
 ]
@@ -1582,20 +1582,19 @@ Changes are relative to @N5054, using the #ins[insert] and #del[strike] conventi
 #quote[
   #grammar[
     capture-default: \
-    #ins[capture-default-qualifier#sub[opt]] \= \
+    #ins[capture-qualifier#sub[opt]] \= \
     #ins[`const`#sub[opt]] &
   ]
 
   #grammar[
-    #ins[capture-default-qualifier:] \
+    #ins[capture-qualifier:] \
     #ins[`const`] \
     #ins[`mutable`]
   ]
 
   #grammar[
     simple-capture: \
-    #ins[`mutable`#sub[opt]] identifier ...#sub[opt] \
-    #ins[`const` identifier ...#sub[opt]] \
+    #ins[capture-qualifier#sub[opt]] identifier ...#sub[opt] \
     #ins[`const`#sub[opt]] & identifier ...#sub[opt] \
     this \
     \*this
@@ -1603,8 +1602,7 @@ Changes are relative to @N5054, using the #ins[insert] and #del[strike] conventi
 
   #grammar[
     init-capture: \
-    #ins[`mutable`#sub[opt]] ...#sub[opt] identifier initializer \
-    #ins[`const` ...#sub[opt] identifier initializer] \
+    #ins[capture-qualifier#sub[opt]] ...#sub[opt] identifier initializer \
     #ins[`const`#sub[opt]] & ...#sub[opt] identifier initializer
   ]
 ]
@@ -1647,7 +1645,7 @@ Changes are relative to @N5054, using the #ins[insert] and #del[strike] conventi
   #quote[
     ... the entity is said to be _implicitly captured_ by each intervening _lambda-expression_ with an associated
     _capture-default_ that does not explicitly capture it#ins[, except that `*this` is not implicitly captured by a
-      _lambda-expression_ whose _capture-default_ is `const =`, `mutable =`, or `const &`]. The implicit capture of
+      _lambda-expression_ whose _capture-default_ is _capture-qualifier_ `=` or `const &`]. The implicit capture of
     `*this` is deprecated when the _capture-default_ is `=`; see #eelis("depr.capture.this"). ...
   ]
 ]
@@ -1656,7 +1654,7 @@ Changes are relative to @N5054, using the #ins[insert] and #del[strike] conventi
   === Change #eelis("expr.prim.lambda.capture", 10)
   #quote[
     An entity is _captured by copy_ if
-    - it is implicitly captured, the _capture-default_ is #replace[`=`][`=`, `mutable =`, or `const =`], and the
+    - it is implicitly captured, the _capture-default_ is #ins[_capture-qualifier_#sub[_opt_]] `=`, and the
       captured entity is not `*this`, or
     - it is explicitly captured with a capture that is not of the form `this`, `&` _identifier_ ...#sub[_opt_],
       #ins[`const &` _identifier_ ...#sub[_opt_]] #replace[or][,] `&` ...#sub[_opt_] _identifier initializer_ #ins[or
