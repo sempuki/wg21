@@ -557,8 +557,8 @@ direction, and matches the common model of a lambda as shorthand for an object o
   predictable behavior (that is the same as if they had declared the callable type manually).
 
 - By-reference captures do not necessarily generate non-static data members (NSDM), and are unaffected by the call
-  operator qualification due to the shallow propagation of `const`. `const&` captures are useful as read-only views,
-  but `mutable` references do not exist.
+  operator qualification due to the shallow propagation of `const`. `const&` captures are useful as read-only views.
+  `mutable&` captures are not supported because `&` capture already allows mutating the captured entity.
 
 == Const Lambdas
 
