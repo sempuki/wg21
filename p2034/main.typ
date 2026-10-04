@@ -1551,6 +1551,21 @@ Changes are relative to @N5054, using the #ins[insert] and #del[strike] conventi
     \[_Note 3:_ If _E_ is not declared `mutable` #ins[and the entity is not captured mutably (#eelis(
         "expr.prim.lambda.capture",
       )) by _E_], the type of such an identifier will typically be `const` qualified. --- _end note_\]
+
+    \[Example 1#ins[ \
+```cpp [const=](decltype((x)) y) mutable { ```\
+```cpp   decltype((x)) z = x;         // OK, y has type float&, z has type float const& ```\
+```cpp }; ```\
+```cpp [mutable=](decltype((x)) y) { ```\
+```cpp   decltype((x)) z = x;        // OK, y has type float&, z has type float& ```\
+```cpp }; ```\
+```cpp [&](decltype((x)) y) { ```\
+```cpp   decltype((x)) z = x;        // OK, y has type float&, z has type float& ```\
+```cpp }; ```\
+```cpp [const&](decltype((x)) y) { ```\
+```cpp   decltype((x)) z = x;         // OK, y has type float&, z has type float const& ```\
+```cpp }; ```\
+    ] -- end example\]
   ]
 ]
 
@@ -1621,6 +1636,23 @@ Changes are relative to @N5054, using the #ins[insert] and #del[strike] conventi
       - "`&` _identifier_ ...#sub[_opt_]" if the _capture-default_ is `&`, or
       - "`const &` _identifier_ ...#sub[_opt_]" if the _capture-default_ is `const &`.
     ]
+
+    \[Example 1: \
+     ```cpp struct S2 { void f(int i); };``` \
+     ```cpp void S2::f(int i) {``` \
+     ```cpp   [&, i]{ };        // OK``` \
+     ```cpp   [&, this, i]{ };  // OK, equivalent to [&, i]``` \
+     ```cpp   [&, &i]{ };       // error: i preceded by & when & is the default``` \
+     `  `#ins[```cpp [&, const& i]{ }; // OK```]\
+     `  `#ins[```cpp [const &, &i]{ }; // OK```]\
+     ```cpp   [=, *this]{ };    // OK``` \
+     ```cpp   [=, this]{ };     // OK, equivalent to [=]``` \
+     `  `#ins[```cpp [const =, i]{ };  // OK```]\
+     `  `#ins[```cpp [const=, const i]{ }; // error: i preceded by const when const is the default```]\
+     ```cpp   [i, i]{ };        // error: i repeated``` \
+     ```cpp   [this, *this]{ }; // error: this appears twice``` \
+     ```cpp }``` \
+    -- end example\]
   ]
 ]
 
