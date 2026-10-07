@@ -129,8 +129,7 @@ Thanks to Jens Maurer for providing feedback.
 - Renamed _capture-default-qualifier_ to _capture-qualifier_.
 - Added a normative sentence to clarify that a `const` specifier on the lambda does not have any impact.
 - Merged the paragraph that was previously added after #eelis("expr.prim.id.unqual", "4") back into it.
-- Defined the type of expression that uses an entity captured by const ref in terms of an _id-expression_
-  naming the captured entity in the scope enclosing the lambda.
+- Handled the case of capturing a reference by const reference in #eelis("expr.prim.id.unqual", "4").
 - Dropped the previously added note about reference to function in #eelis("expr.prim.lambda.capture", "10").
 - Compactified some diffs in the wording.
 - Added a few examples for the new facilities into the wording.
@@ -1555,8 +1554,8 @@ Changes are relative to @N5054, using the #ins[insert] and #del[strike] conventi
     then the type of the expression is#ins[:]
     - the type of a class member access expression naming the non-static data member that would be declared for such a
       capture in the object parameter of the function call operator of _E_ #ins[if _E_ captures the entity by copy, or]
-    - #ins[the `const`-qualified type of an _id-expression_ naming the captured entity in the scope enclosing _E_
-      otherwise].
+    - #ins[`const T` if _E_ captures the entity by const reference, where `T` is the referenced type if the entity is
+      a reference, or the type of the entity otherwise.]
 
     \[_Note 3:_ If _E_ is not declared `mutable` #ins[and the entity is not captured mutably (#eelis(
         "expr.prim.lambda.capture",
