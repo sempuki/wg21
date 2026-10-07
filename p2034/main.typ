@@ -1489,10 +1489,10 @@ is described in @sec-recaptures[Section]; the wording achieves it in the re-capt
   "expr.prim.lambda.capture",
   14,
 )), which propagates the `const` by asking whether the entity would have `const`-qualified type within the enclosing
-lambda, a question it answers through #eelis("expr.prim.id.unqual"). That phrasing is what carries the `const` through
-any number of plain-reference intermediaries. Each step moves one lambda outward and terminates at the outermost.
-Still, it is the part of the wording most worth a second look, and CWG may prefer to restate it as a single inductive
-definition.
+lambda, a question it answers through #eelis("expr.prim.id.unqual", "4"). That phrasing is what carries the `const`
+through any number of plain-reference intermediaries, but it also makes the two paragraphs refer to each other. The
+reference is well-founded: each step moves one lambda outward and terminates at the outermost. Still, it is the part
+of the wording most worth a second look, and CWG may prefer to restate it as a single inductive definition.
 
 == Capture-defaults reduce to one redundancy rule
 
