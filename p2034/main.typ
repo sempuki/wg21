@@ -123,12 +123,14 @@
 
 == Changes from R9
 
-- Thanks to Jens Maurer for providing feedback.
+Thanks to Jens Maurer for providing feedback.
+
 - Clarified why `mutable&` does not exist in the summary.
 - Renamed _capture-default-qualifier_ to _capture-qualifier_.
 - Added a normative sentence to clarify that a `const` specifier on the lambda does not have any impact.
-- Merge the paragraph that was previously added after #eelis("expr.prim.id.unqual", "4") back into it.
-- Define the type of expression that uses an entity captured by const ref in terms of another expression.
+- Merged the paragraph that was previously added after #eelis("expr.prim.id.unqual", "4") back into it.
+- Defined the type of expression that uses an entity captured by const ref in terms of an _id-expression_
+  naming the captured entity in the scope enclosing the lambda.
 - Dropped the previously added note about reference to function in #eelis("expr.prim.lambda.capture", "10").
 - Compactified some diffs in the wording.
 - Added a few examples for the new facilities into the wording.
@@ -1545,13 +1547,16 @@ Changes are relative to @N5054, using the #ins[insert] and #del[strike] conventi
     - the _unqualified-id_ appears in a _lambda-expression_ at program point P,
     - the entity is a local entity or a variable declared by an _init-capture_,
     - naming the entity within the _compound-statement_ of the innermost enclosing _lambda-expression_ of P, but not in
-      an unevaluated operand, would refer to an entity captured by copy #ins[or by const reference] in some intervening _lambda-expression_, and
+      an unevaluated operand, would refer to an entity captured by copy #ins[or by const reference] in some intervening
+      _lambda-expression_, and
     - P is in the function parameter scope, but not the _parameter-declaration-clause_, of the innermost such
       _lambda-expression_ _E_,
 
-    then the type of the expression is#ins[:
-    - the `const`-qualified type of an _id-expression_ naming the captured entity in the scope enclosing _E_ in the case of an entity captured by const reference by _E_, and]
-    - the type of a class member access expression naming the non-static data member that would be declared for such a capture in the object parameter of the function call operator of _E_ #ins[otherwise].
+    then the type of the expression is#ins[:]
+    - the type of a class member access expression naming the non-static data member that would be declared for such a
+      capture in the object parameter of the function call operator of _E_ #ins[if _E_ captures the entity by copy, or]
+    - #ins[the `const`-qualified type of an _id-expression_ naming the captured entity in the scope enclosing _E_
+      otherwise].
 
     \[_Note 3:_ If _E_ is not declared `mutable` #ins[and the entity is not captured mutably (#eelis(
         "expr.prim.lambda.capture",
