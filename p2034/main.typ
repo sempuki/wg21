@@ -93,7 +93,7 @@
   columns: 2,
   inset: (left: 0%, y: 4pt),
   stroke: none,
-  "Document", link("https://wg21.link/P2034")[P2034R9],
+  "Document", link("https://wg21.link/P2034")[P2034R10],
   "Date", datetime.today().display(),
   "Audience", "CWG",
   "Project", [ISO/IEC JTC1/SC22/WG21 14882: Programming Language -- C++],
@@ -120,6 +120,19 @@
 = Revision History
 
 #set heading(outlined: false)
+
+== Changes from R9
+
+Thanks to Jens Maurer for providing feedback.
+
+- Clarified why `mutable&` does not exist in the summary.
+- Renamed _capture-default-qualifier_ to _capture-qualifier_.
+- Added a normative sentence to clarify that a `const` specifier on the lambda does not have any impact.
+- Merged the paragraph that was previously added after #eelis("expr.prim.id.unqual", "4") back into it.
+- Handled the case of capturing a reference by const reference in #eelis("expr.prim.id.unqual", "4").
+- Dropped the previously added note about reference to function in #eelis("expr.prim.lambda.capture", "10").
+- Compactified some diffs in the wording.
+- Added a few examples for the new facilities into the wording.
 
 == Changes from R8
 
@@ -557,8 +570,8 @@ direction, and matches the common model of a lambda as shorthand for an object o
   predictable behavior (that is the same as if they had declared the callable type manually).
 
 - By-reference captures do not necessarily generate non-static data members (NSDM), and are unaffected by the call
-  operator qualification due to the shallow propagation of `const`. `const&` captures are useful as read-only views,
-  but `mutable` references do not exist.
+  operator qualification due to the shallow propagation of `const`. `const&` captures are useful as read-only views.
+  `mutable&` captures are not supported because a `&` capture already allows mutating the captured entity.
 
 == Const Lambdas
 
@@ -803,12 +816,12 @@ The current grammar admits only `&` and `=` as a _capture-default_ (#eelis("expr
 
 #grammar[
   capture-default: \
-  capture-default-qualifier#sub[opt] \= \
+  capture-qualifier#sub[opt] \= \
   `const`#sub[opt] &
 ]
 
 #grammar[
-  capture-default-qualifier: \
+  capture-qualifier: \
   `const` \
   `mutable`
 ]
@@ -1424,11 +1437,10 @@ storage-class-specifier on members the closure already declares. This section is
 are organized and why they take the shape they do. It covers the design of the _wording_, as distinct from the design
 of the feature above. It is written for readers following the proposed wording closely.
 
-The changes touch five subclauses:
+The changes touch four subclauses:
 
 - #eelis("expr.prim.id.unqual"): the type of a name that resolves to a `const`-reference capture;
 - #eelis("expr.prim.lambda.general"): the `const` _lambda-specifier_;
-- #eelis("expr.prim.lambda.closure"): a note that the `const` _lambda-specifier_ has no effect;
 - #eelis("expr.prim.lambda.capture"): the bulk, covering grammar, the qualified members, the capture-default rules, and
   nested re-capture; and
 - #eelis("cpp.predefined"): the feature-test macro.
@@ -1456,37 +1468,30 @@ capture (the qualified _capture-default_), so one term serves both `[mutable x]`
 Function references are the one by-copy capture whose member is a reference rather than a value. A reference member can
 be neither `const`-qualified nor `mutable` (#eelis("basic.type.qualifier", 1), #eelis("dcl.stc", 8)), so the qualifier
 is simply inert there. The type rule needs no exception, since it settles the function-reference case before reaching
-the qualified branches; the `mutable` storage class excludes it explicitly, and a note records why.
+the qualified branches; the `mutable` storage class excludes it explicitly.
 
 == The `const` specifier and the specifier constraints
 
 The `const` _lambda-specifier_ introduces no behavior (the call operator is already `const` unless `mutable` or
-`static` is present), so the closure-type wording gains only a note saying so (#eelis("expr.prim.lambda.closure", 7)),
-and the specifier constraints in #eelis("expr.prim.lambda.general", 4) gain only the entry forbidding `const` alongside
+`static` is present), so #eelis("expr.prim.lambda.general", 4) gains an entry forbidding `const` alongside
 an explicit object parameter and the mutual exclusion of `const`, `mutable`, and `static`.
 
 == `const&` has no member to qualify
 
 A reference capture need not create a member at all (#eelis("expr.prim.lambda.capture", 12)), so `const` has nothing to
 attach to. The `const` is therefore a property of the name's _type_, and the one place that already determines the type
-of a captured name is #eelis("expr.prim.id.unqual", 4). We add a paragraph there: when a name resolves to an entity
+of a captured name is #eelis("expr.prim.id.unqual", 4). We add a case there: when a name resolves to an entity
 captured by `const` reference anywhere in the enclosing chain of lambdas, its type is `const`-qualified.
-
-We add a separate paragraph rather than widen the existing by-copy rule. Widening was tried, by changing that rule's
-trigger from "captured by copy" to "captured", and it breaks: the rule names "the member that the capture would
-create" in the innermost capturing lambda, and a reference capture creates no member, so the rule contradicts itself
-whenever that innermost lambda captures by reference. Keeping the by-copy rule untouched and adding a parallel rule for
-the reference case avoids the contradiction.
 
 Re-capture is where this needs care. The behavior (a copy of a `const` view is itself `const`, to any nesting depth)
 is described in @sec-recaptures[Section]; the wording achieves it in the re-capture rule (#eelis(
   "expr.prim.lambda.capture",
   14,
 )), which propagates the `const` by asking whether the entity would have `const`-qualified type within the enclosing
-lambda, a question it answers through #eelis("expr.prim.id.unqual"). That phrasing is what carries the `const` through
-any number of plain-reference intermediaries, but it also makes the two paragraphs refer to each other. The reference is
-well-founded: each step moves one lambda outward and terminates at the outermost. Still, it is the part of the wording
-most worth a second look, and CWG may prefer to restate it as a single inductive definition.
+lambda, a question it answers through #eelis("expr.prim.id.unqual", "4"). That phrasing is what carries the `const`
+through any number of plain-reference intermediaries, but it also makes the two paragraphs refer to each other. The
+reference is well-founded: each step moves one lambda outward and terminates at the outermost. Still, it is the part
+of the wording most worth a second look, and CWG may prefer to restate it as a single inductive definition.
 
 == Capture-defaults reduce to one redundancy rule
 
@@ -1541,33 +1546,39 @@ Changes are relative to @N5054, using the #ins[insert] and #del[strike] conventi
     - the _unqualified-id_ appears in a _lambda-expression_ at program point P,
     - the entity is a local entity or a variable declared by an _init-capture_,
     - naming the entity within the _compound-statement_ of the innermost enclosing _lambda-expression_ of P, but not in
-      an unevaluated operand, would refer to an entity captured by copy in some intervening _lambda-expression_, and
+      an unevaluated operand, would refer to an entity captured by copy #ins[or by const reference] in some intervening
+      _lambda-expression_, and
     - P is in the function parameter scope, but not the _parameter-declaration-clause_, of the innermost such
       _lambda-expression_ _E_,
 
-    then the type of the expression is the type of a class member access expression naming the non-static data member
-    that would be declared for such a capture in the object parameter of the function call operator of _E_.
+    then the type of the expression is#ins[:]
+    - the type of a class member access expression naming the non-static data member that would be declared for such a
+      capture in the object parameter of the function call operator of _E_ #ins[if _E_ captures the entity by copy, or]
+    - #ins[`const T` if _E_ captures the entity by const reference, where `T` is the referenced type if the entity is
+      a reference, or the type of the entity otherwise.]
 
     \[_Note 3:_ If _E_ is not declared `mutable` #ins[and the entity is not captured mutably (#eelis(
         "expr.prim.lambda.capture",
       )) by _E_], the type of such an identifier will typically be `const` qualified. --- _end note_\]
-  ]
-]
 
-#nobreak[
-  === Add a paragraph after #eelis("expr.prim.id.unqual", 4)
-  #quote[
-    #ins[Otherwise, if
-      - the _unqualified-id_ appears in a _lambda-expression_ at program point P,
-      - the entity is a local entity or a variable declared by an _init-capture_,
-      - naming the entity within the _compound-statement_ of the innermost enclosing _lambda-expression_ of P, but not
-        in an unevaluated operand, would refer to an entity captured by const reference (#eelis(
-          "expr.prim.lambda.capture",
-        )) in some intervening _lambda-expression_, and
-      - P is in the function parameter scope, but not the _parameter-declaration-clause_, of the innermost such
-        _lambda-expression_,
-
-      then the type of the expression is the `const`-qualified type of the entity.]
+    \[Example 1#ins[ \
+```cpp // ...```\
+```cpp float x, &r = x;```\
+```cpp // ...```\
+```cpp [const=](decltype((x)) y) mutable { ```\
+```cpp   decltype((x)) z = x;        // OK, y has type float&, z has type float const& ```\
+```cpp }; ```\
+```cpp [mutable=](decltype((x)) y) { ```\
+```cpp   decltype((x)) z = x;        // OK, y has type float&, z has type float& ```\
+```cpp }; ```\
+```cpp [&](decltype((x)) y) { ```\
+```cpp   decltype((x)) z = x;        // OK, y has type float&, z has type float& ```\
+```cpp }; ```\
+```cpp [const&](decltype((x)) y) { ```\
+```cpp   decltype((x)) z = x;        // OK, y has type float&, z has type float const& ```\
+```cpp }; ```\
+```cpp // ...```\
+    ] -- end example\]
   ]
 ]
 
@@ -1589,22 +1600,8 @@ Changes are relative to @N5054, using the #ins[insert] and #del[strike] conventi
   and `consteval`. If the _lambda-declarator_ contains an explicit object parameter, then no _lambda-specifier_ in the
   _lambda-specifier-seq_ shall be #ins[`const`,] `mutable`, or `static`. The _lambda-specifier-seq_ shall #del[not
     contain both `mutable` and `static`] #ins[contain at most one of `const`, `mutable`, or `static`]. If the
-  _lambda-specifier-seq_ contains `static`, there shall be no _lambda-capture_.
-]
-
-== [expr.prim.lambda.closure]
-
-#nobreak[
-  === Add a note to #eelis("expr.prim.lambda.closure", 7)
-  #quote[
-    ... It is a non-static member function or member function template that is declared `const` if and only if the
-    _lambda-expression_'s _parameter-declaration-clause_ is not followed by `mutable` and the _lambda-declarator_ does
-    not contain an explicit object parameter. ...
-
-    #ins[\[_Note_: The `const` _lambda-specifier_ has no additional effect; the function call operator is declared
-      `const` if and only if `mutable` and `static` are not specified, regardless of whether `const` is present. ---
-      _end note_\]]
-  ]
+  _lambda-specifier-seq_ contains `static`, there shall be no _lambda-capture_. #ins[The presence of the `const`
+  _lambda-specifier_ has no effect.]
 ]
 
 == [expr.prim.lambda.capture]
@@ -1613,20 +1610,19 @@ Changes are relative to @N5054, using the #ins[insert] and #del[strike] conventi
 #quote[
   #grammar[
     capture-default: \
-    #ins[capture-default-qualifier#sub[opt]] \= \
+    #ins[capture-qualifier#sub[opt]] \= \
     #ins[`const`#sub[opt]] &
   ]
 
   #grammar[
-    #ins[capture-default-qualifier:] \
+    #ins[capture-qualifier:] \
     #ins[`const`] \
     #ins[`mutable`]
   ]
 
   #grammar[
     simple-capture: \
-    #ins[`mutable`#sub[opt]] identifier ...#sub[opt] \
-    #ins[`const` identifier ...#sub[opt]] \
+    #ins[capture-qualifier#sub[opt]] identifier ...#sub[opt] \
     #ins[`const`#sub[opt]] & identifier ...#sub[opt] \
     this \
     \*this
@@ -1634,8 +1630,7 @@ Changes are relative to @N5054, using the #ins[insert] and #del[strike] conventi
 
   #grammar[
     init-capture: \
-    #ins[`mutable`#sub[opt]] ...#sub[opt] identifier initializer \
-    #ins[`const` ...#sub[opt] identifier initializer] \
+    #ins[capture-qualifier#sub[opt]] ...#sub[opt] identifier initializer \
     #ins[`const`#sub[opt]] & ...#sub[opt] identifier initializer
   ]
 ]
@@ -1643,12 +1638,10 @@ Changes are relative to @N5054, using the #ins[insert] and #del[strike] conventi
 #nobreak[
   === Change #eelis("expr.prim.lambda.capture", 2)
   #quote[
-    #del[If a _lambda-capture_ includes a _capture-default_ that is `&`, no identifier in a _simple-capture_ of that
-      _lambda-capture_ shall be preceded by `&`. If a _lambda-capture_ includes a _capture-default_ that is `=`, each
-      _simple-capture_ of that _lambda-capture_ shall be of the form "`&` _identifier_ ...#sub[_opt_]", "`this`", or
-      "`* this`".]
-    #ins[If a _lambda-capture_ includes a _capture-default_, no _simple-capture_ of that _lambda-capture_ shall be of
-      the form]
+    If a _lambda-capture_ includes a _capture-default_ #del[that is `&`, no identifier in a _simple-capture_ of that
+    _lambda-capture_ shall be preceded by `&`. If a _lambda-capture_ includes a _capture-default_ that is `=`, each]
+    #ins[, no] _simple-capture_ of that _lambda-capture_ shall be of the form #del["`&` _identifier_ ...#sub[_opt_]",
+    "`this`", or "`* this`".]
     #ins[
       - "_identifier_ ...#sub[_opt_]" if the _capture-default_ is `=`,
       - "`mutable` _identifier_ ...#sub[_opt_]" if the _capture-default_ is `mutable =`,
@@ -1656,6 +1649,23 @@ Changes are relative to @N5054, using the #ins[insert] and #del[strike] conventi
       - "`&` _identifier_ ...#sub[_opt_]" if the _capture-default_ is `&`, or
       - "`const &` _identifier_ ...#sub[_opt_]" if the _capture-default_ is `const &`.
     ]
+
+    \[Example 1: \
+     ```cpp struct S2 { void f(int i); };``` \
+     ```cpp void S2::f(int i) {``` \
+     ```cpp   [&, i]{ };        // OK``` \
+     ```cpp   [&, this, i]{ };  // OK, equivalent to [&, i]``` \
+     ```cpp   [&, &i]{ };       // error: i preceded by & when & is the default``` \
+     `  `#ins[```cpp [&, const& i]{ }; // OK```]\
+     `  `#ins[```cpp [const &, &i]{ }; // OK```]\
+     ```cpp   [=, *this]{ };    // OK``` \
+     ```cpp   [=, this]{ };     // OK, equivalent to [=]``` \
+     `  `#ins[```cpp [const =, i]{ };  // OK```]\
+     `  `#ins[```cpp [const=, const i]{ }; // error: i preceded by const when const is the default```]\
+     ```cpp   [i, i]{ };        // error: i repeated``` \
+     ```cpp   [this, *this]{ }; // error: this appears twice``` \
+     ```cpp }``` \
+    -- end example\]
   ]
 ]
 
@@ -1678,7 +1688,7 @@ Changes are relative to @N5054, using the #ins[insert] and #del[strike] conventi
   #quote[
     ... the entity is said to be _implicitly captured_ by each intervening _lambda-expression_ with an associated
     _capture-default_ that does not explicitly capture it#ins[, except that `*this` is not implicitly captured by a
-      _lambda-expression_ whose _capture-default_ is `const =`, `mutable =`, or `const &`]. The implicit capture of
+      _lambda-expression_ whose _capture-default_ is _capture-qualifier_ `=` or `const &`]. The implicit capture of
     `*this` is deprecated when the _capture-default_ is `=`; see #eelis("depr.capture.this"). ...
   ]
 ]
@@ -1687,11 +1697,10 @@ Changes are relative to @N5054, using the #ins[insert] and #del[strike] conventi
   === Change #eelis("expr.prim.lambda.capture", 10)
   #quote[
     An entity is _captured by copy_ if
-    - it is implicitly captured, the _capture-default_ is #replace[`=`][`=`, `mutable =`, or `const =`], and the
+    - it is implicitly captured, the _capture-default_ is #ins[_capture-qualifier_#sub[_opt_]] `=`, and the
       captured entity is not `*this`, or
-    - it is explicitly captured with a capture that is not of the form `this`, `&` _identifier_ ...#sub[_opt_],
-      #ins[`const &` _identifier_ ...#sub[_opt_]] #replace[or][,] `&` ...#sub[_opt_] _identifier initializer_ #ins[or
-        `const &` ...#sub[_opt_] _identifier initializer_].
+    - it is explicitly captured with a capture that is not of the form `this`, #ins[`const`#sub[_opt_]] `&` _identifier_ ...#sub[_opt_],
+      or #ins[`const`#sub[_opt_]] `&` ...#sub[_opt_] _identifier initializer_.
 
     #ins[An entity captured by copy is _captured mutably_ if it is explicitly captured by a _capture_ that begins with
       `mutable`, or it is implicitly captured and the _capture-default_ is `mutable =`.]
@@ -1699,22 +1708,18 @@ Changes are relative to @N5054, using the #ins[insert] and #del[strike] conventi
     #ins[An entity captured by copy is _captured by const copy_ if it is explicitly captured by a _capture_ that begins
       with `const`, or it is implicitly captured and the _capture-default_ is `const =`.]
 
-    For each entity captured by copy, an unnamed non-static data member is declared in the closure type. #del[The type
-      of such a data member is the referenced type if the entity is a reference to an object, an lvalue reference to
-      the referenced function type if the entity is a reference to a function, or the type of the corresponding
-      captured entity otherwise.] #ins[The type of such a data member is an
-      lvalue reference to the referenced function type if the entity is a reference to a function. Otherwise, letting
-      _U_ be the referenced type if the entity is a reference to an object and the type of the entity otherwise, and _V_
-      be _U_ with any top-level cv-qualifiers removed, it is]
+    For each entity captured by copy, an unnamed non-static data member is declared in the closure type. The type
+      of such a data member is #del[the referenced type if the entity is a reference to an object,] an lvalue reference to
+      the referenced function type if the entity is a reference to a function#del[, or the type of the corresponding
+      captured entity otherwise]. #ins[Otherwise, letting
+      `U` be the referenced type if the entity is a reference to an object and the type of the entity otherwise, and `V`
+      be `U` with any top-level cv-qualifiers removed, it is]
     #ins[
-      - _V_, if the entity is captured mutably,
-      - `const`-qualified _V_, if the entity is captured by const copy, or
-      - _U_ otherwise.
+      - `V`, if the entity is captured mutably,
+      - `const V`, if the entity is captured by const copy, or
+      - `U` otherwise.
     ]
     #ins[If the entity is captured mutably and is not a reference to a function, the data member is declared `mutable`.]
-    #ins[\[_Note_: For an entity that is a reference to a function, the data member is a reference, which can be neither
-      `const`-qualified nor `mutable` (#eelis("basic.type.qualifier"), #eelis("dcl.stc")); a `const` or `mutable`
-      capture of such an entity therefore has no effect on the data member. --- _end note_\]]
     A member of an anonymous union shall not be captured by copy.
   ]
 ]
@@ -1723,8 +1728,11 @@ Changes are relative to @N5054, using the #ins[insert] and #del[strike] conventi
   === Change #eelis("expr.prim.lambda.capture", 12)
   #quote[
     An entity is _captured by reference_ if it is implicitly or explicitly captured but not captured by copy.
-    #ins[An entity captured by reference is _captured by const reference_ if it is either explicitly captured with a
-      `const &` capture, or it is implicitly captured and the _capture-default_ is `const &`.]
+    #ins[An entity captured by reference is _captured by const reference_ if
+    - it is implicitly captured and the _capture-default_ is `const &`, or
+    - it is explicitly captured with a capture of the form `const &` _identifier_ ...#sub[_opt_],
+      or `const &` ...#sub[_opt_] _identifier initializer_.
+    ]
     It is unspecified whether additional unnamed non-static data members are declared in the closure type for entities
     captured by reference. If declared, such non-static data members shall be of literal type.
   ]
@@ -1742,7 +1750,7 @@ Changes are relative to @N5054, using the #ins[insert] and #del[strike] conventi
     - If `m1` captures the entity by reference, `m2` captures the same entity captured by `m1`. #ins[If an
         _id-expression_ naming the entity within the _compound-statement_ of `m1` would have const-qualified type
         (#eelis("expr.prim.id.unqual")), then the entity is considered to be const-qualified for the determination of
-        the type of any non-static data member declared for `m2`'s capture (#eelis("expr.prim.lambda.capture", 10)).]
+        the type of any non-static data member declared for `m2`'s capture.]
   ]
 ]
 
@@ -1755,10 +1763,8 @@ On adoption, bump `__cpp_lambdas` in #eelis("cpp.predefined") to the value corre
 Thanks to Patrick McMichael for suggesting the idea; to Nevin Liber and Matt Calabrese for important corrections; to
 Nevin Liber, Davis Herring, Barry Revzin, and Victoria Tsai for examples and suggestions; to Hana Dušíková and Ville
 Voutilainen for observing that the `constexpr`/`consteval` restriction was unnecessary; to Yihan Wang for raising the
-lifetime of a `const&` capture bound to a temporary, which became @sec-reference-lifetime[Section]; to Lakshay Garg for
-catching that the rationale for disallowing a qualified `this` contradicted the treatment of `[const& x]`, and for
-several other corrections; to Ville Voutilainen for the exploratory implementation; and to Daveed Vandevoorde for
-feedback on the wording.
+lifetime of a `const&` capture bound to a temporary, which became @sec-reference-lifetime[Section]; to Ville Voutilainen
+for the exploratory implementation; and to Daveed Vandevoorde and Jens Maurer for feedback on the wording.
 
 #pagebreak()
 
