@@ -93,7 +93,7 @@
   columns: 2,
   inset: (left: 0%, y: 4pt),
   stroke: none,
-  "Document", link("https://wg21.link/P2034")[P2034R10],
+  "Document", link("https://wg21.link/P2034")[P2034R11],
   "Date", datetime.today().display(),
   "Audience", "CWG",
   "Project", [ISO/IEC JTC1/SC22/WG21 14882: Programming Language -- C++],
@@ -120,6 +120,18 @@
 = Revision History
 
 #set heading(outlined: false)
+
+== Changes from R10
+
+Thanks to Brian Bi for providing feedback.
+
+- Stated how `[const r]`, `[mutable r]`, and `[const& r]` treat a reference to a function, in the prose and in
+  #eelis("expr.prim.id.unqual", "4"). Noted that the GCC proof of concept rejects the first two.
+- Corrected @sec-reference-lifetime[Section]: #eelis("stmt.return", "6") already rejects the aggregate case. The
+  closure case is a pre-existing gap, with suggested wording for CWG.
+- Clarified the placement of the new example in #eelis("expr.prim.id.unqual", "4"), two phrases in
+  #eelis("expr.prim.lambda.capture", "10") and #eelis("expr.prim.lambda.capture", "14"), and marked the feature-test
+  macro value as an insertion.
 
 == Changes from R9
 
@@ -792,6 +804,9 @@ The table assumes a non-`const` `x`, which is where the two forms differ. If `x`
 already binds a reference to `const` and ```cpp [const& x]``` means the same thing; the capture is then redundant
 because the object is already `const`.
 
+If `x` is a function or a reference to a function, ```cpp [const& x]``` also means the same as ```cpp [&x]```. A
+function type cannot be `const`-qualified, so no `const` is added and `x` names the function as before.
+
 == Capture Defaults
 
 The capture-defaults `[=]` and `[&]` may be qualified by `const` or `mutable`, applying the qualifier to every
@@ -1025,26 +1040,41 @@ That leaves two candidate rules for a qualified simple-capture:
   `const` entity forms `mutable const T`, which is ill-formed; the rule would simply accept the error. This is
   faithful to cv-preservation but surprising and fragile: whether `[mutable x]` compiles depends on a cv-qualifier the
   author may not control.
-2. Init-capture: _deduce by `auto` rules, then apply the requested qualifier_, exactly as an init-capture does. `auto`
-  deduction drops any top-level cv-qualifiers, so `mutable` never collides with a `const`; `const` then adds one. This
-  is uniform across both qualifiers and both capture forms.
+2. Init-capture: _strip references and top-level cv-qualifiers as `auto` deduction does, then apply the requested
+  qualifier_. Dropping the top-level cv-qualifiers means `mutable` never collides with a `const`; `const` then adds
+  one. This is uniform across both qualifiers and both capture forms.
 
-=== The Adopted Rule
+Neither rule covers a reference to a function. Its member is a reference, so it has no cv-qualifiers to preserve or
+strip, and it does not decay to a pointer as an init-capture would. @sec-adopted-rule[Section] gives its treatment.
+
+=== The Adopted Rule <sec-adopted-rule>
 
 We adopt (2). A programmer who writes `mutable` or `const` on a capture is requesting a customization, so faithfully
 preserving the source cv-qualifiers (the simple-capture default) is neither expected nor useful. Deducing as an
 init-capture does makes a qualified simple-capture and the corresponding init-capture produce the same member, and
 removes the `mutable const T` hazard.
 
-For an entity of type `T`:
+For an entity of type `T` that is not a reference to a function:
 
 - `mutable` produces a `mutable` member of type `std::remove_cvref_t<T>`, and
 - `const` produces a member of type `const std::remove_cvref_t<T>`.
 
 Stripping all top-level cv-qualifiers, `volatile` included, is exactly what `auto` deduction does, so a qualified
-simple-capture and the corresponding init-capture deduce the same member type even for a `volatile` entity. The one
-exception is a reference to a function, which the type rule settles before the qualified branches apply: the
-simple-capture keeps a reference, while the init-capture decays to a pointer.
+simple-capture and the corresponding init-capture deduce the same member type even for a `volatile` entity.
+
+A reference to a function is the exception. `[const r]` and `[mutable r]` are well-formed and declare the same member
+as `[r]`, an lvalue reference to the function. The qualifier has no effect, because a reference can be neither
+`const`-qualified nor `mutable` (#eelis("basic.type.qualifier", 1), #eelis("dcl.stc", 8)). The init-capture
+`[const y = r]` differs: `auto` decays the function to a pointer, so the member is a `const` pointer to function.
+
+```cpp
+void g();
+void (&r)() = g;
+[r]           { };  // member: void (&)()
+[const r]     { };  // member: void (&)(); the const has no effect
+[mutable r]   { };  // member: void (&)(); not declared mutable
+[const y = r] { };  // member: void (* const)()
+```
 
 The qualifier is a genuine member qualifier: the closure is exactly the struct a programmer would hand-write, so
 `decltype`, overload resolution, and reflection (@P2996) all observe the real member type.
@@ -1152,19 +1182,44 @@ By guaranteed copy elision the closure object is the caller's, but the temporary
 and is destroyed when `make` returns. This is diagnosable, and is diagnosed: for the spelling reachable today, Clang
 reports _"returning address of local temporary object"_ with the note _"captured by reference via initialization of
 lambda capture"_. GCC does not accept that spelling at all (it rejects ```cpp [&x = g()]``` for a `const`-returning
-`g`, though it accepts the equivalent ```cpp auto& x = g();```), so the existing form is barely exercised. The same
-happens without lambdas, though: a returned aggregate with a reference member bound to a temporary loses that temporary
-at the return, on both GCC and Clang. This is how reference lifetime behaves across a return generally, and closures
-merely inherit it.
+`g`, though it accepts the equivalent ```cpp auto& x = g();```), so the existing form is barely exercised.
 
-We would welcome CWG's view on how the wording is meant to be read here. Taken literally, it appears to say something
-else: if the returned closure object's lifetime is the caller's, then so is the _init-capture_ variable's (#eelis(
-  "expr.prim.lambda.capture",
-  6,
-)), and the temporary bound to it persists for the lifetime of that reference (#eelis("class.temporary", 6)), which
-would require the temporary to outlive the frame it was materialized in. We may be reading it wrongly. If we are not,
-it seems better handled as a core issue than as part of this paper. Either way the behavior is reachable in C++26 and
-is not introduced by this proposal; we raise it because this proposal makes it much easier to encounter.
+The standard already forbids the equivalent aggregate. A return statement that binds a returned reference, or a
+constituent reference (#eelis("intro.object")) of a returned object, to a temporary expression is ill-formed
+(#eelis("stmt.return", 6)). A reference member of a returned aggregate is such a constituent reference, so the
+aggregate case is rejected at compile time.
+
+```cpp
+struct A { const Foo& r; };
+A make_a() { return { bar() }; }  // ill-formed: constituent reference bound to a temporary
+```
+
+That rule does not reach the closure. A reference capture need not declare a member at all
+(#eelis("expr.prim.lambda.capture", 12)), so the _init-capture_ variable is not a constituent reference of the
+returned closure object, and `make` above is well-formed but dangles. This is a defect in C++26, reachable today
+through ```cpp [&x = cf()]```, and not introduced by this proposal. This proposal makes it much easier to encounter.
+
+The fix is to treat the _init-capture_ variable as a member for the purposes of #eelis("stmt.return", 6). CWG may
+prefer to fold it into this paper or to open a separate core issue; the authors are happy with either. Brian Bi
+suggested the following wording:
+
+#quote[
+  In a function other than an invented function for `std::is_convertible` (#eelis("meta.rel")), a return statement
+  that binds
+  - a returned reference or
+  - a constituent reference (#eelis("intro.object")) of a returned object
+
+  to a temporary expression (#eelis("class.temporary")) is ill-formed. #ins[For the purposes of this rule, the invented
+    variable for a reference _init-capture_ is treated as a direct member of the closure object
+    (#eelis("expr.prim.lambda.capture")).]
+
+  \[_Example 2:_ \
+  ... \
+  #ins[```cpp auto f4() {```] \
+  #ins[```cpp   return [l = [const& r = 42]() { return r; }] { return l(); };  // ill-formed```] \
+  #ins[```cpp }```] \
+  --- _end example_\]
+]
 
 == Interaction with `consteval` and `constexpr` Lambdas
 
@@ -1216,6 +1271,10 @@ The change reduces to adjusting capture-member types and storage-class-specifier
 @thesis[Section]: the closure is already a class, and the proposal only sets qualifiers on its members. The
 implementation is available on #link("https://github.com/villevoutilainen/gcc/tree/lambda-p2034")[GitHub] and can be
 tried on #link("https://godbolt.org/z/9fcoYeMMf")[Compiler Explorer].
+
+The proof of concept differs from the proposed wording in one known case. It rejects `[const r]` and `[mutable r]` when
+`r` is a reference to a function. The wording accepts both and declares the same member as `[r]`
+(@sec-adopted-rule[Section]).
 
 = Concerns
 
@@ -1528,8 +1587,8 @@ The lifetime of a temporary bound by a `const&` capture also needs no wording of
 (@sec-reference-lifetime[Section]). An _init-capture_ is already specified as a variable declaration
 (#eelis("expr.prim.lambda.capture", 6)), so the ordinary rule for a reference bound to a temporary
 (#eelis("class.temporary", 6)) reaches it unchanged; this proposal widens what such a capture can bind to, not how long
-the bound object lives. One reading of those two rules together, for the case where the closure is returned, is put to
-CWG in that section.
+the bound object lives. Returning such a closure exposes a pre-existing gap in #eelis("stmt.return", 6); that section
+gives suggested wording for CWG to adopt here or in a separate core issue.
 
 #set heading(numbering: none, outlined: true)
 
@@ -1554,32 +1613,33 @@ Changes are relative to @N5054, using the #ins[insert] and #del[strike] conventi
     then the type of the expression is#ins[:]
     - the type of a class member access expression naming the non-static data member that would be declared for such a
       capture in the object parameter of the function call operator of _E_ #ins[if _E_ captures the entity by copy, or]
-    - #ins[`const T` if _E_ captures the entity by const reference, where `T` is the referenced type if the entity is
-      a reference, or the type of the entity otherwise.]
+    - #ins[if _E_ captures the entity by const reference, `T` if `T` is a function type and `const T` otherwise, where
+      `T` is the referenced type if the entity is a reference, or the type of the entity otherwise.]
 
     \[_Note 3:_ If _E_ is not declared `mutable` #ins[and the entity is not captured mutably (#eelis(
         "expr.prim.lambda.capture",
       )) by _E_], the type of such an identifier will typically be `const` qualified. --- _end note_\]
 
-    \[Example 1#ins[ \
-```cpp // ...```\
-```cpp float x, &r = x;```\
-```cpp // ...```\
-```cpp [const=](decltype((x)) y) mutable { ```\
-```cpp   decltype((x)) z = x;        // OK, y has type float&, z has type float const& ```\
-```cpp }; ```\
-```cpp [mutable=](decltype((x)) y) { ```\
-```cpp   decltype((x)) z = x;        // OK, y has type float&, z has type float& ```\
-```cpp }; ```\
-```cpp [&](decltype((x)) y) { ```\
-```cpp   decltype((x)) z = x;        // OK, y has type float&, z has type float& ```\
-```cpp }; ```\
-```cpp [const&](decltype((x)) y) { ```\
-```cpp   decltype((x)) z = x;        // OK, y has type float&, z has type float const& ```\
-```cpp }; ```\
-```cpp // ...```\
-    ] -- end example\]
+    \[_Example 1:_ \
+    ```cpp void f() {``` \
+    ```cpp   float x, &r = x;``` \
+    ```cpp   // ... existing lambda-expressions unchanged ...``` \
+    `  `#ins[```cpp [const=](decltype((x)) y) mutable {```] \
+    `  `#ins[```cpp   decltype((x)) z = x;  // OK, y has type float&, z has type float const&```] \
+    `  `#ins[```cpp };```] \
+    `  `#ins[```cpp [mutable=](decltype((x)) y) {```] \
+    `  `#ins[```cpp   decltype((x)) z = x;  // OK, y has type float&, z has type float&```] \
+    `  `#ins[```cpp };```] \
+    `  `#ins[```cpp [&](decltype((x)) y) {```] \
+    `  `#ins[```cpp   decltype((x)) z = x;  // OK, y has type float&, z has type float&```] \
+    `  `#ins[```cpp };```] \
+    `  `#ins[```cpp [const&](decltype((x)) y) {```] \
+    `  `#ins[```cpp   decltype((x)) z = x;  // OK, y has type float&, z has type float const&```] \
+    `  `#ins[```cpp };```] \
+    ```cpp }``` \
+    --- _end example_\]
   ]
+  The new _lambda-expressions_ in the example go after the last existing one, at the end of the body of `f`.
 ]
 
 == [expr.prim.lambda.general]
@@ -1713,7 +1773,7 @@ Changes are relative to @N5054, using the #ins[insert] and #del[strike] conventi
       the referenced function type if the entity is a reference to a function#del[, or the type of the corresponding
       captured entity otherwise]. #ins[Otherwise, letting
       `U` be the referenced type if the entity is a reference to an object and the type of the entity otherwise, and `V`
-      be `U` with any top-level cv-qualifiers removed, it is]
+      be `U` with any top-level cv-qualifiers removed, the type of the data member is]
     #ins[
       - `V`, if the entity is captured mutably,
       - `const V`, if the entity is captured by const copy, or
@@ -1745,7 +1805,7 @@ Changes are relative to @N5054, using the #ins[insert] and #del[strike] conventi
     _lambda-expression_ `m1`, then `m2`'s capture is transformed as follows:
 
     - If `m1` captures the entity by copy, `m2` captures the corresponding non-static data member of `m1`'s closure
-      type; if `m1` is not `mutable` #ins[and the entity is not captured mutably], the non-static data member is
+      type; if `m1` is not `mutable` #ins[and the entity is not captured mutably by `m1`], the non-static data member is
       considered to be const-qualified.
     - If `m1` captures the entity by reference, `m2` captures the same entity captured by `m1`. #ins[If an
         _id-expression_ naming the entity within the _compound-statement_ of `m1` would have const-qualified type
@@ -1756,7 +1816,15 @@ Changes are relative to @N5054, using the #ins[insert] and #del[strike] conventi
 
 == Feature-Test Macro
 
-On adoption, bump `__cpp_lambdas` in #eelis("cpp.predefined") to the value corresponding to this paper.
+=== Change #link("https://eel.is/c++draft/tab:cpp.predefined.ft")[\[tab:cpp.predefined.ft\]]
+#quote[
+  #table(
+    columns: 2,
+    [Macro name], [Value],
+    [`__cpp_lambdas`], [#replace[`200907L`][`20XXXXL`]],
+  )
+]
+Editor's note: replace `20XXXXL` with the year and month of adoption.
 
 = Thanks
 
@@ -1764,7 +1832,8 @@ Thanks to Patrick McMichael for suggesting the idea; to Nevin Liber and Matt Cal
 Nevin Liber, Davis Herring, Barry Revzin, and Victoria Tsai for examples and suggestions; to Hana Dušíková and Ville
 Voutilainen for observing that the `constexpr`/`consteval` restriction was unnecessary; to Yihan Wang for raising the
 lifetime of a `const&` capture bound to a temporary, which became @sec-reference-lifetime[Section]; to Ville Voutilainen
-for the exploratory implementation; and to Daveed Vandevoorde and Jens Maurer for feedback on the wording.
+for the exploratory implementation; to Daveed Vandevoorde and Jens Maurer for feedback on the wording; and to Brian Bi for
+feedback on the wording, including the [stmt.return] change in @sec-reference-lifetime[Section].
 
 #pagebreak()
 
